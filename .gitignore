@@ -1,0 +1,27 @@
+# Editors and operating systems
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+Desktop.ini
+
+# Temporary and diagnostic files
+*.bug
+*.tmp
+*.temp
+*.log
+
+# Credentials and private key material
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+.env
+.env.*
+
+# Generated review artifacts
+qa_*/
+render_*/

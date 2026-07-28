@@ -1,0 +1,121 @@
+/* REXX */
+/*
+RXMQVTRACE = 'CONN OPEN PUT GET CLOSE DISC MH SMP MBF BMH IMP DMH'
+*/
+TRACE o
+call RXMQCONS
+qmgr  = 'QM1'
+qname = 'DEV.QUEUE.1'
+say "QMGR =" qmgr
+say "QUEUE=" qname
+/* --------------------------------------------------------------- */
+/* 0. Initialization */
+/* --------------------------------------------------------------- */
+  rcc = rxmqinit()
+  if word(rcc,1) /= 0      then do
+   say time('l') 'initialization problem rc ==> ' rcc
+   interpret 'msgerr = rxmq.rcmap.'word(rcc,1)
+   say "                                           ==> "msgerr
+   exit 8
+   end
+/* Connection */
+rcc = RXMQCONN(qmgr)
+say "CONN =" rcc
+/* OPEN */
+/* OPEN */
+iod1.OT = MQOT_Q
+iod1.ON = qname
+iod1.OM = ''
+oo1 = MQOO_OUTPUT + MQOO_INPUT_SHARED + MQOO_FAIL_IF_QUIESCING
+rcc = RXMQOPEN('iod1.', oo1, 'h1', 'ood1.')
+say "OPEN =" rcc " h1=" h1
+/* MH source */
+/* cmho1.OPT = MQCMHO_NONE */
+/* cmho1.OPT = MQCMHO_NO_VALIDATION */
+cmho1.OPT = MQCMHO_VALIDATE
+rcc = RXMQMH('mh1','cmho1.')
+say "MH1 =" rcc mh1
+/* Property usr.color = red */
+smpo1.OPT = MQSMPO_NONE
+pd1.OPT = MQPD_NONE
+pd1.SUPPORT = MQPD_SUPPORT_OPTIONAL
+pd1.CONTEXT = MQPD_NO_CONTEXT
+pd1.COPYOPTIONS = MQCOPY_DEFAULT
+/* Property 1 */
+rcc = RXMQSMP('mh1','smpo1.','usr.color','pd1.',MQTYPE_STRING,'red')
+if word(rcc,1) <> 0 then signal cleanup_mh1
+say "SMP couleur =" rcc
+/* Property 2 */
+rcc = RXMQSMP('mh1','smpo1.','usr.shape','pd1.',MQTYPE_STRING,'square')
+if word(rcc,1) <> 0 then signal cleanup_mh1
+say "SMP forme =" rcc
+/* MH -> buffer RFH2 */
+mhbo1.OPT = MQMHBO_NONE
+md1.VER  = MQMD_VERSION_2
+md1.REP  = MQRO_NONE
+md1.MSG  = MQMT_DATAGRAM
+md1.EXP  = MQEI_UNLIMITED
+md1.FBK  = MQFB_NONE
+md1.ENC  = MQENC_NATIVE
+md1.CCSI = MQCCSI_Q_MGR
+md1.FORM = MQFMT_STRING
+md1.PRI  = MQPRI_PRIORITY_AS_Q_DEF
+md1.PER  = MQPER_PERSISTENCE_AS_Q_DEF
+rcc = RXMQMBF('mh1','mhbo1.','usr.%','md1.','buf',8192,'blen')
+say "MBF =" rcc
+say "MD.CCSI =" md1.CCSI
+say "MD.ENC  =" md1.ENC
+say "MD.FORM =" md1.FORM
+say "buf length =" length(buf)
+say "blen       =" blen
+say "buf hex    =" c2x(substr(buf,1,64))
+if word(rcc,1) <> 0 then signal cleanup_mh1
+/* Create the handle that receives the properties from the buffer */
+cmho2.OPT = MQCMHO_VALIDATE
+rcc = RXMQMH('mh2','cmho2.')
+say "MH2 =" rcc mh2
+if word(rcc,1) <> 0 then signal cleanup_mh1
+/* Convert the MQRFH2 buffer to message handle mh2 */
+bmho1.OPT = MQBMHO_NONE
+rcc = RXMQBMH('mh2','bmho1.','md1.',buf)
+say "BMH =" rcc
+if word(rcc,1) <> 0 then signal cleanup_mh2
+/* Inquire the properties reconstructed in mh2 */
+impo1.OPT = MQIMPO_INQ_FIRST + MQIMPO_CONVERT_VALUE
+impo1.RQENC  = MQENC_NATIVE
+impo1.RQCCSI = MQCCSI_APPL
+pname = 'usr.%'
+do until RXMQ.LASTAC = MQRC_PROPERTY_NOT_AVAILABLE /* end property */
+  pvalue.1 = ''
+  pvalue.0 = 4096
+  pnameout = ''
+  ptype    = ''
+rcc = RXMQIMP('mh2','impo1.',pname,'pdout.','ptype','pvalue.','pnameout')
+   if word(rcc,1) <> 0 then
+    leave
+  say "Name     =" pnameout
+  say "Type     =" ptype
+  say "Longueur =" pvalue.0
+  say "Value     =" pvalue.1
+  say "rcc      =" rcc
+  say "------------------------------"
+  impo1.OPT = MQIMPO_INQ_NEXT + MQIMPO_CONVERT_VALUE
+end
+/* Normal cleanup */
+cleanup_close:
+  rcc = RXMQCLOS(h1,0)
+  say "CLOSE =" rcc
+cleanup_disc:
+  rcc = RXMQDISC()
+  say "DISC =" rcc
+exit 0
+cleanup_mh1:
+  dmho1.OPT = MQDMHO_NONE
+  rcc = RXMQDMH('mh1','dmho1.')
+  say "DMH mh1 =" rcc
+  signal cleanup_close
+cleanup_mh2:
+  dmho2.OPT = MQDMHO_NONE
+  rcc = RXMQDMH('mh2','dmho2.')
+  say "DMH mh2 =" rcc
+  signal cleanup_close

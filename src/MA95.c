@@ -126,6 +126,13 @@
 //                              CMIT  -> mqcmit
 //                              BACK  -> mqback
 //                              SUB   -> mqsub
+//                              MH    -> mqcrtmh
+//                              DMH   -> mqdltmh
+//                              SMP   -> mqsetmp
+//                              IMP   -> mqinqmp
+//                              DMP   -> mqdltmp
+//                              BMH   -> mqbufmh
+//                              MBF   -> mqmhbuf
 //
 //                              BRO   -> Browse extension
 //                              HXT   -> Header extraction extension
@@ -206,6 +213,13 @@
   #define RXMQC    CPPMC
   #define RXMQV    CPPMV
   #define RXMQVC   CPPMVC
+  #define RXMQMH   CPPMMH
+  #define RXMQDMH  CPPMDMH
+  #define RXMQSMP  CPPMSMP
+  #define RXMQIMP  CPPMIMP
+  #define RXMQDMP  CPPMDMP
+  #define RXMQBMH  CPPMBMH
+  #define RXMQMBF  CPPMMBF
 //
 // Function to print to stdout (REXX terminal or standard output)
 //
@@ -332,6 +346,14 @@
  MQMD2   md_default    = {MQMD2_DEFAULT}  ;
  MQPMO   pmo_default   = {MQPMO_DEFAULT}  ;
  MQGMO   gmo_default   = {MQGMO_DEFAULT}  ;
+ MQCMHO  cmho_default  = {MQCMHO_DEFAULT} ;
+ MQDMHO  dmho_default  = {MQDMHO_DEFAULT} ;
+ MQSMPO  smpo_default  = {MQSMPO_DEFAULT} ;
+ MQIMPO  impo_default  = {MQIMPO_DEFAULT} ;
+ MQDMPO  dmpo_default  = {MQDMPO_DEFAULT} ;
+ MQBMHO  bmho_default  = {MQBMHO_DEFAULT} ;
+ MQMHBO  mhbo_default  = {MQMHBO_DEFAULT} ;
+ MQPD    pd_default    = {MQPD_DEFAULT}   ;
 
 //
 //  Global debug variable for controlling current trace status
@@ -358,6 +380,13 @@
   #define SUB   0x00004000
   #define INIT  0x00000020
   #define TERM  0x00000010
+  #define MH    0x00002000
+  #define DMH   0x00001000
+  #define SMP   0x00000800
+  #define IMP   0x00000400
+  #define DMP   0x00000200
+  #define BMH   0x00000100
+  #define MBF   0x00000080
   #define ALL   0xFFFFFFFF
 
 //
@@ -529,9 +558,17 @@
   MQMD2   * mdp     ; // pointer to MQMD
   MQGMO   * gmop    ; // pointer to MQGMO
   MQPMO   * pmop    ; // pointer to MQPMO
+  MQCMHO  * cmhop   ; // pointer to MQCMHO
+  MQDMHO  * dmhop   ; // pointer to MQDMHO
+  MQSMPO  * smpop   ; // pointer to MQSMPO
+  MQIMPO  * impop   ; // pointer to MQIMPO
+  MQDMPO  * dmpop   ; // pointer to MQDMPO
+  MQBMHO  * bmhop   ; // pointer to MQBMHO
+  MQMHBO *  mhbop   ; // pointer to MQMHBO
+  MQPD    * pdp     ; // pointer to MQPD
   MQSD    * sdp     ; // pointer to MQSD
 
-  if ( !memcmp(cbptr, RXMQeyecatcher, sizeof(MQCHAR4)))        // Format RXMQCB
+  if (memcmp(cbptr, RXMQeyecatcher, sizeof(MQCHAR4)) == 0)       // Format RXMQCB
    {
     rxmqcbp = (RXMQCB *) cbptr ;
     printf( "\n")  ;
@@ -547,7 +584,7 @@
     printf( "\n") ;
    }
 
-  if ( !memcmp(cbptr, MQOD_STRUC_ID, sizeof(MQCHAR4)))        // Format MQOD
+  if (memcmp(cbptr, MQOD_STRUC_ID, sizeof(MQCHAR4)) == 0)      // Format MQOD
     {
      odp = (MQOD *) cbptr;
      printf( "\n") ;
@@ -588,7 +625,7 @@
      printf( "\n") ;
     }
 
-  if ( !memcmp(cbptr, MQMD_STRUC_ID, sizeof(MQCHAR4)))        // Format MQMD
+  if (memcmp(cbptr, MQMD_STRUC_ID, sizeof(MQCHAR4)) == 0)      // Format MQMD
     {
      mdp = (MQMD2 *) cbptr;
      printf( "\n") ;
@@ -624,7 +661,7 @@
      printf( "\n") ;
     }
 
-  if ( !memcmp(cbptr, MQGMO_STRUC_ID, sizeof(MQCHAR4)))        // Format MQGMO
+  if (memcmp(cbptr, MQGMO_STRUC_ID, sizeof(MQCHAR4)) == 0)       // Format MQGMO
     {
      gmop = (MQGMO *) cbptr;
      printf( "\n") ;
@@ -651,7 +688,7 @@
      printf( "\n") ;
     }
 
-  if ( !memcmp(cbptr, MQPMO_STRUC_ID, sizeof(MQCHAR4)))        // Format MQPMO
+  if (memcmp(cbptr, MQPMO_STRUC_ID, sizeof(MQCHAR4)) == 0)       // Format MQPMO
     {
      pmop = (MQPMO *) cbptr;
      printf( "\n") ;
@@ -677,7 +714,87 @@
      printf( "\n") ;
     }
 
-  if ( !memcmp(cbptr, MQSD_STRUC_ID, sizeof(MQCHAR4)))        // Format MQSD
+  if (memcmp(cbptr, MQCMHO_STRUC_ID, sizeof(MQCHAR4)) == 0)    // Format MQCMHO
+    {
+     cmhop = (MQCMHO *) cbptr;
+     printf( "\n") ;
+     DumpString  ( "MQCMHO StrucId          :", cmhop->StrucId, sizeof(MQCHAR4) ) ;
+     DumpLongDec ( "       Version          :", cmhop->Version )                  ;
+     DumpLongDec ( "       Options          :", cmhop->Options )                  ;
+     printf( "\n") ;
+    }
+  if (memcmp(cbptr, MQDMHO_STRUC_ID, sizeof(MQCHAR4)) == 0)    // Format MQDMHO
+    {
+     dmhop = (MQDMHO *) cbptr;
+     printf( "\n") ;
+     DumpString  ( "MQDMHO StrucId          :", dmhop->StrucId, sizeof(MQCHAR4) ) ;
+     DumpLongDec ( "       Version          :", dmhop->Version )                  ;
+     DumpLongDec ( "       Options          :", dmhop->Options )                  ;
+     printf( "\n") ;
+    }
+  if (memcmp(cbptr, MQSMPO_STRUC_ID, sizeof(MQCHAR4)) == 0)       // Format MQSMPO
+    {
+     smpop = (MQSMPO *) cbptr;
+     printf( "\n") ;
+     DumpString  ( "MQSMPO StrucId          :", smpop->StrucId, sizeof(MQCHAR4) ) ;
+     DumpLongDec ( "       Version          :", smpop->Version )                  ;
+     DumpLongDec ( "       Options          :", smpop->Options )                  ;
+     printf( "\n") ;
+    }
+if (memcmp(cbptr, MQIMPO_STRUC_ID, sizeof(MQCHAR4)) == 0)       // Format MQIMPO
+  {
+   impop = (MQIMPO *) cbptr;
+   printf( "\n") ;
+   DumpString  ( "MQIMPO StrucId          :", impop->StrucId, sizeof(MQCHAR4) ) ;
+   DumpLongDec ( "       Version          :", impop->Version )                  ;
+   DumpLongDec ( "       Options          :", impop->Options )                  ;
+   DumpLongDec ( "       RequestedEncoding :", impop->RequestedEncoding )       ;
+   DumpLongDec ( "       RequestedCCSID    :", impop->RequestedCCSID )          ;
+   DumpLongDec ( "       ReturnedEncoding  :", impop->ReturnedEncoding )        ;
+   DumpLongDec ( "       ReturnedCCSID     :", impop->ReturnedCCSID )           ;
+   printf( "\n") ;
+  }
+if (memcmp(cbptr, MQDMPO_STRUC_ID, sizeof(MQCHAR4)) == 0)       // Format MQDMPO
+  {
+   dmpop = (MQDMPO *) cbptr;
+   printf( "\n") ;
+   DumpString  ( "MQDMPO StrucId          :", dmpop->StrucId, sizeof(MQCHAR4) ) ;
+   DumpLongDec ( "       Version          :", dmpop->Version )                  ;
+   DumpLongDec ( "       Options          :", dmpop->Options )                  ;
+   printf( "\n") ;
+  }
+if (memcmp(cbptr, MQBMHO_STRUC_ID, sizeof(MQCHAR4)) == 0)       // Format MQBMHO
+  {
+   bmhop = (MQBMHO *) cbptr;
+   printf( "\n") ;
+   DumpString  ( "MQBMHO StrucId          :", bmhop->StrucId, sizeof(MQCHAR4) ) ;
+   DumpLongDec ( "       Version          :", bmhop->Version )                  ;
+   DumpLongDec ( "       Options          :", bmhop->Options )                  ;
+   printf( "\n") ;
+  }
+if (memcmp(cbptr, MQMHBO_STRUC_ID, sizeof(MQCHAR4)) == 0)
+  {
+   mhbop = (MQMHBO *) cbptr;
+   printf("\n");
+   DumpString ("MQMHBO StrucId          :", mhbop->StrucId,
+               sizeof(MQCHAR4));
+   DumpLongDec("       Version          :", mhbop->Version);
+   DumpLongDec("       Options          :", mhbop->Options);
+   printf("\n");
+  }
+if (memcmp(cbptr, MQPD_STRUC_ID, sizeof(MQCHAR4)) == 0)         // Format MQPD
+    {
+     pdp = (MQPD *) cbptr;
+     printf( "\n") ;
+     DumpString  ( "MQPD StrucId            :", pdp->StrucId, sizeof(MQCHAR4) ) ;
+     DumpLongDec ( "     Version            :", pdp->Version )                  ;
+     DumpLongDec ( "     Options            :", pdp->Options )                  ;
+     DumpLongDec ( "     Support            :", pdp->Support )                  ;
+     DumpLongDec ( "     Context            :", pdp->Context )                  ;
+     DumpLongDec ( "     CopyOptions        :", pdp->CopyOptions )              ;
+     printf( "\n") ;
+    }
+  if (memcmp(cbptr, MQSD_STRUC_ID, sizeof(MQCHAR4)) == 0)     // Format MQSD
     {
      sdp = (MQSD *) cbptr;
      printf( "\n") ;
@@ -741,7 +858,7 @@ void parm_to_ulong ( RXSTRING   parm    // parameter REXX string
  *number = 0 ;
  for(i=0; i<parm.strlength; i++)
   {
-   if((parm.strptr[i] < '0') || (parm.strptr[i] > '9')) return;
+   if((parm.strptr[i] < '0') !! (parm.strptr[i] > '9')) return;
    else *number = (*number)*10 + ((parm.strptr[i]) & 0x0f);
   }
 }
@@ -1136,7 +1253,7 @@ void stem_from_long ( MQULONG    traceid  // trace id of caller
                   sv1rc,varnamc,varvalc,(uint32_t)sv1.shvvaluelen,(uint32_t)strlen(varvalc))
       ) ;
 
- if (   ( (sv1rc == RXSHV_OK) || (sv1rc == RXSHV_NEWV) )
+ if (   ( (sv1rc == RXSHV_OK) !! (sv1rc == RXSHV_NEWV) )
      && (zlist != NULL))
    {
      strcat(zlist," ")        ;
@@ -1179,7 +1296,7 @@ void stem_from_int64 ( MQULONG    traceid  // trace id of caller
                  sv1rc,varnamc,varvalc,(uint32_t)sv1.shvvaluelen,(uint32_t)strlen(varvalc))
       ) ;
 
- if (   ((sv1rc == RXSHV_OK) || (sv1rc == RXSHV_NEWV))
+ if (   ((sv1rc == RXSHV_OK) !! (sv1rc == RXSHV_NEWV))
      && (zlist != NULL))
  {
      strcat(zlist," ")        ;
@@ -1219,7 +1336,7 @@ void stem_from_char ( MQULONG    traceid  // trace id of caller
                  sv1rc,varnamc,letter,(uint32_t)sv1.shvvaluelen,(uint32_t)sizeof(MQCHAR))
       ) ;
 
- if (   ((sv1rc == RXSHV_OK) || (sv1rc == RXSHV_NEWV))
+ if (   ((sv1rc == RXSHV_OK) !! (sv1rc == RXSHV_NEWV))
      && (zlist != NULL))
  {
      strcat(zlist," ")        ;
@@ -1262,7 +1379,7 @@ void stem_from_string ( MQULONG    traceid  // trace id of caller
                  sv1rc,varnamc,size,string,(uint32_t)sv1.shvvaluelen,size)
       ) ;
 
- if (   ((sv1rc == RXSHV_OK) || (sv1rc == RXSHV_NEWV))
+ if (   ((sv1rc == RXSHV_OK) !! (sv1rc == RXSHV_NEWV))
      && (zlist != NULL))
  {
      strcat(zlist," ")        ;
@@ -1304,7 +1421,7 @@ void stem_from_bytes  ( MQULONG    traceid   // trace id of caller
  TRACX(traceid, (string,sv1.shvvaluelen) )                      ;
  TRACE(traceid, ("<-%"PRIu32"/%d\n",(uint32_t)sv1.shvvaluelen,size) ) ;
 
- if (   ((sv1rc == RXSHV_OK) || (sv1rc == RXSHV_NEWV))
+ if (   ((sv1rc == RXSHV_OK) !! (sv1rc == RXSHV_NEWV))
      && (zlist != NULL))
  {
      strcat(zlist," ")                      ;
@@ -1375,6 +1492,13 @@ void stem_from_strinv ( MQULONG    traceid      // trace id of caller
 //                              CMIT  -> mqcmit
 //                              BACK  -> mqback
 //                              SUB   -> mqsub
+//                              MH    -> mqcrtmh
+//                              DMH   -> mqdltmh
+//                              SMP   -> mqsetmp
+//                              IMP   -> mqinqmp
+//                              DMP   -> mqdltmp
+//                              BMH   -> mqbufmh
+//                              MBF   -> mqmhbuf
 //
 //                              BRO   -> Browse extension
 //                              HXT   -> Header extraction extension
@@ -1440,27 +1564,34 @@ MQLONG  set_envir ( char     * func        // Current function executed
 
     if ( strlen(varvalc) > 1)
       {
-       if ( strstr(varvalc,"* "    ) != NULL) (*anchorptr)->tracebits |= ALL   ;
-       if ( strstr(varvalc,"CONN " ) != NULL) (*anchorptr)->tracebits |= CONN  ;
-       if ( strstr(varvalc,"DISC " ) != NULL) (*anchorptr)->tracebits |= DISC  ;
-       if ( strstr(varvalc,"OPEN " ) != NULL) (*anchorptr)->tracebits |= OPEN  ;
-       if ( strstr(varvalc,"CLOSE ") != NULL) (*anchorptr)->tracebits |= CLOSE ;
-       if ( strstr(varvalc,"GET "  ) != NULL) (*anchorptr)->tracebits |= GET   ;
-       if ( strstr(varvalc,"PUT "  ) != NULL) (*anchorptr)->tracebits |= PUT   ;
-       if ( strstr(varvalc,"PUT1 " ) != NULL) (*anchorptr)->tracebits |= PUT1  ;
-       if ( strstr(varvalc,"INQ "  ) != NULL) (*anchorptr)->tracebits |= INQ   ;
-       if ( strstr(varvalc,"SET "  ) != NULL) (*anchorptr)->tracebits |= SET   ;
-       if ( strstr(varvalc,"CMIT " ) != NULL) (*anchorptr)->tracebits |= CMIT  ;
-       if ( strstr(varvalc,"BACK " ) != NULL) (*anchorptr)->tracebits |= BACK  ;
-       if ( strstr(varvalc,"SUB "  ) != NULL) (*anchorptr)->tracebits |= SUB   ;
-       if ( strstr(varvalc,"BRO "  ) != NULL) (*anchorptr)->tracebits |= BRO   ;
-       if ( strstr(varvalc,"HXT "  ) != NULL) (*anchorptr)->tracebits |= HXT   ;
-       if ( strstr(varvalc,"EVENT ") != NULL) (*anchorptr)->tracebits |= EVENT ;
-       if ( strstr(varvalc,"TM "   ) != NULL) (*anchorptr)->tracebits |= TM    ;
-       if ( strstr(varvalc,"COM "  ) != NULL) (*anchorptr)->tracebits |= COM   ;
-       if ( strstr(varvalc,"MQV "  ) != NULL) (*anchorptr)->tracebits |= MQV   ;
-       if ( strstr(varvalc,"INIT " ) != NULL) (*anchorptr)->tracebits |= INIT  ;
-       if ( strstr(varvalc,"TERM " ) != NULL) (*anchorptr)->tracebits |= TERM  ;
+       if ( strstr(varvalc,"* "    ) != NULL) (*anchorptr)->tracebits != ALL   ;
+       if ( strstr(varvalc,"CONN " ) != NULL) (*anchorptr)->tracebits != CONN  ;
+       if ( strstr(varvalc,"DISC " ) != NULL) (*anchorptr)->tracebits != DISC  ;
+       if ( strstr(varvalc,"OPEN " ) != NULL) (*anchorptr)->tracebits != OPEN  ;
+       if ( strstr(varvalc,"CLOSE ") != NULL) (*anchorptr)->tracebits != CLOSE ;
+       if ( strstr(varvalc,"GET "  ) != NULL) (*anchorptr)->tracebits != GET   ;
+       if ( strstr(varvalc,"PUT "  ) != NULL) (*anchorptr)->tracebits != PUT   ;
+       if ( strstr(varvalc,"PUT1 " ) != NULL) (*anchorptr)->tracebits != PUT1  ;
+       if ( strstr(varvalc,"INQ "  ) != NULL) (*anchorptr)->tracebits != INQ   ;
+       if ( strstr(varvalc,"SET "  ) != NULL) (*anchorptr)->tracebits != SET   ;
+       if ( strstr(varvalc,"CMIT " ) != NULL) (*anchorptr)->tracebits != CMIT  ;
+       if ( strstr(varvalc,"BACK " ) != NULL) (*anchorptr)->tracebits != BACK  ;
+       if ( strstr(varvalc,"SUB "  ) != NULL) (*anchorptr)->tracebits != SUB   ;
+       if ( strstr(varvalc,"MH  "  ) != NULL) (*anchorptr)->tracebits != MH    ;
+       if ( strstr(varvalc,"DMH "  ) != NULL) (*anchorptr)->tracebits != DMH   ;
+       if ( strstr(varvalc,"SMP "  ) != NULL) (*anchorptr)->tracebits != SMP   ;
+       if ( strstr(varvalc,"IMP "  ) != NULL) (*anchorptr)->tracebits != IMP   ;
+       if ( strstr(varvalc,"DMP "  ) != NULL) (*anchorptr)->tracebits != DMP   ;
+       if ( strstr(varvalc,"BMH "  ) != NULL) (*anchorptr)->tracebits != BMH   ;
+       if ( strstr(varvalc,"MBF "  ) != NULL) (*anchorptr)->tracebits != MBF   ;
+       if ( strstr(varvalc,"BRO "  ) != NULL) (*anchorptr)->tracebits != BRO   ;
+       if ( strstr(varvalc,"HXT "  ) != NULL) (*anchorptr)->tracebits != HXT   ;
+       if ( strstr(varvalc,"EVENT ") != NULL) (*anchorptr)->tracebits != EVENT ;
+       if ( strstr(varvalc,"TM "   ) != NULL) (*anchorptr)->tracebits != TM    ;
+       if ( strstr(varvalc,"COM "  ) != NULL) (*anchorptr)->tracebits != COM   ;
+       if ( strstr(varvalc,"MQV "  ) != NULL) (*anchorptr)->tracebits != MQV   ;
+       if ( strstr(varvalc,"INIT " ) != NULL) (*anchorptr)->tracebits != INIT  ;
+       if ( strstr(varvalc,"TERM " ) != NULL) (*anchorptr)->tracebits != TERM  ;
       }
 
     memset(&varvalc,0,sizeof(varvalc))                             ; // Clear REXX variable
@@ -1470,28 +1601,34 @@ MQLONG  set_envir ( char     * func        // Current function executed
 
     if ( strlen(varvalc) > 1)
       {
-       if ( strstr(varvalc,"* "    ) != NULL) (*anchorptr)->tracebits |= ALL   ;
-       if ( strstr(varvalc,"CONN " ) != NULL) (*anchorptr)->tracebits |= CONN  ;
-       if ( strstr(varvalc,"DISC " ) != NULL) (*anchorptr)->tracebits |= DISC  ;
-       if ( strstr(varvalc,"OPEN " ) != NULL) (*anchorptr)->tracebits |= OPEN  ;
-       if ( strstr(varvalc,"CLOSE ") != NULL) (*anchorptr)->tracebits |= CLOSE ;
-       if ( strstr(varvalc,"GET "  ) != NULL) (*anchorptr)->tracebits |= GET   ;
-       if ( strstr(varvalc,"PUT "  ) != NULL) (*anchorptr)->tracebits |= PUT   ;
-       if ( strstr(varvalc,"PUT1 " ) != NULL) (*anchorptr)->tracebits |= PUT1  ;
-       if ( strstr(varvalc,"INQ "  ) != NULL) (*anchorptr)->tracebits |= INQ   ;
-       if ( strstr(varvalc,"SET "  ) != NULL) (*anchorptr)->tracebits |= SET   ;
-       if ( strstr(varvalc,"SUB "  ) != NULL) (*anchorptr)->tracebits |= SUB   ;
-       if ( strstr(varvalc,"CMIT " ) != NULL) (*anchorptr)->tracebits |= CMIT  ;
-       if ( strstr(varvalc,"BACK " ) != NULL) (*anchorptr)->tracebits |= BACK  ;
-       if ( strstr(varvalc,"SUB "  ) != NULL) (*anchorptr)->tracebits |= SUB   ;
-       if ( strstr(varvalc,"BRO "  ) != NULL) (*anchorptr)->tracebits |= BRO   ;
-       if ( strstr(varvalc,"HXT "  ) != NULL) (*anchorptr)->tracebits |= HXT   ;
-       if ( strstr(varvalc,"EVENT ") != NULL) (*anchorptr)->tracebits |= EVENT ;
-       if ( strstr(varvalc,"TM "   ) != NULL) (*anchorptr)->tracebits |= TM    ;
-       if ( strstr(varvalc,"COM "  ) != NULL) (*anchorptr)->tracebits |= COM   ;
-       if ( strstr(varvalc,"MQV "  ) != NULL) (*anchorptr)->tracebits |= MQV   ;
-       if ( strstr(varvalc,"INIT " ) != NULL) (*anchorptr)->tracebits |= INIT  ;
-       if ( strstr(varvalc,"TERM " ) != NULL) (*anchorptr)->tracebits |= TERM  ;
+       if ( strstr(varvalc,"* "    ) != NULL) (*anchorptr)->tracebits != ALL   ;
+       if ( strstr(varvalc,"CONN " ) != NULL) (*anchorptr)->tracebits != CONN  ;
+       if ( strstr(varvalc,"DISC " ) != NULL) (*anchorptr)->tracebits != DISC  ;
+       if ( strstr(varvalc,"OPEN " ) != NULL) (*anchorptr)->tracebits != OPEN  ;
+       if ( strstr(varvalc,"CLOSE ") != NULL) (*anchorptr)->tracebits != CLOSE ;
+       if ( strstr(varvalc,"GET "  ) != NULL) (*anchorptr)->tracebits != GET   ;
+       if ( strstr(varvalc,"PUT "  ) != NULL) (*anchorptr)->tracebits != PUT   ;
+       if ( strstr(varvalc,"PUT1 " ) != NULL) (*anchorptr)->tracebits != PUT1  ;
+       if ( strstr(varvalc,"INQ "  ) != NULL) (*anchorptr)->tracebits != INQ   ;
+       if ( strstr(varvalc,"SET "  ) != NULL) (*anchorptr)->tracebits != SET   ;
+       if ( strstr(varvalc,"CMIT " ) != NULL) (*anchorptr)->tracebits != CMIT  ;
+       if ( strstr(varvalc,"BACK " ) != NULL) (*anchorptr)->tracebits != BACK  ;
+       if ( strstr(varvalc,"SUB "  ) != NULL) (*anchorptr)->tracebits != SUB   ;
+       if ( strstr(varvalc,"MH  "  ) != NULL) (*anchorptr)->tracebits != MH    ;
+       if ( strstr(varvalc,"DMH "  ) != NULL) (*anchorptr)->tracebits != DMH   ;
+       if ( strstr(varvalc,"SMP "  ) != NULL) (*anchorptr)->tracebits != SMP   ;
+       if ( strstr(varvalc,"IMP "  ) != NULL) (*anchorptr)->tracebits != IMP   ;
+       if ( strstr(varvalc,"DMP "  ) != NULL) (*anchorptr)->tracebits != DMP   ;
+       if ( strstr(varvalc,"BMH "  ) != NULL) (*anchorptr)->tracebits != BMH   ;
+       if ( strstr(varvalc,"MBF "  ) != NULL) (*anchorptr)->tracebits != MBF   ;
+       if ( strstr(varvalc,"BRO "  ) != NULL) (*anchorptr)->tracebits != BRO   ;
+       if ( strstr(varvalc,"HXT "  ) != NULL) (*anchorptr)->tracebits != HXT   ;
+       if ( strstr(varvalc,"EVENT ") != NULL) (*anchorptr)->tracebits != EVENT ;
+       if ( strstr(varvalc,"TM "   ) != NULL) (*anchorptr)->tracebits != TM    ;
+       if ( strstr(varvalc,"COM "  ) != NULL) (*anchorptr)->tracebits != COM   ;
+       if ( strstr(varvalc,"MQV "  ) != NULL) (*anchorptr)->tracebits != MQV   ;
+       if ( strstr(varvalc,"INIT " ) != NULL) (*anchorptr)->tracebits != INIT  ;
+       if ( strstr(varvalc,"TERM " ) != NULL) (*anchorptr)->tracebits != TERM  ;
       }
    }
 
@@ -2001,6 +2138,421 @@ void make_stem_from_go ( MQULONG    traceid      // trace id of caller
  return ;
 } // End of make_stem_from_go function
 
+//
+//
+//
+//
+// make_cmho_from_stem will return a Create Message Handle Options
+//                 structure from the contents of a Stem Variable:
+//
+//                     .VER   -> Version
+//                     .OPT   -> Options
+//
+void make_cmho_from_stem ( MQULONG    traceid
+                         , MQCMHO   * cmho
+                         , RXSTRING   stem
+                         )
+{
+ TRACE(traceid, ("Entering make_cmho_from_stem\n") ) ;
+ memcpy(cmho, &cmho_default, sizeof(MQCMHO)) ;
+ stem_to_long(traceid, stem, "VER", &cmho->Version) ;
+ stem_to_long(traceid, stem, "OPT", &cmho->Options) ;
+ DUMPCB(traceid, cmho) ;
+  TRACE(traceid, ("Leaving make_cmho_from_stem\n") ) ;
+  return ;
+ } // End of make_cmho_from_stem function
+ //
+ // make_stem_from_cmho will return a Create Message Handle Options
+ //                 structure into a Stem Variable:
+ //
+ //                     .VER   -> Version
+ //                     .OPT   -> Options
+ //                     .ZLIST -> VER OPT
+ //
+ void make_stem_from_cmho ( MQULONG    traceid
+                          , MQCMHO   * cmho
+                          , RXSTRING   stem
+                          )
+ {
+  char                   zlist[100] ;  // Char version of .ZLIST
+ zlist[0] = '\0' ;
+ TRACE(traceid, ("Entering make_stem_from_cmho\n") ) ;
+ stem_from_long  (traceid, zlist, stem, "VER", cmho->Version) ;
+ stem_from_long  (traceid, zlist, stem, "OPT", cmho->Options) ;
+ stem_from_string(traceid, zlist, stem, "ZLIST", zlist, strlen(zlist)) ;
+ TRACE(traceid, ("Leaving make_stem_from_cmho\n") ) ;
+ return ;
+} // End of make_stem_from_cmho function
+//
+// make_dmho_from_stem will return a Delete Message Handle Options
+//                 structure from the contents of a Stem Variable:
+//
+//                     .VER   -> Version
+//                     .OPT   -> Options
+//
+void make_dmho_from_stem ( MQULONG    traceid
+                         , MQDMHO   * dmho
+                         , RXSTRING   stem
+                         )
+{
+ TRACE(traceid, ("Entering make_dmho_from_stem\n") ) ;
+ memcpy(dmho, &dmho_default, sizeof(MQDMHO)) ;
+ stem_to_long(traceid, stem, "VER", &dmho->Version) ;
+ stem_to_long(traceid, stem, "OPT", &dmho->Options) ;
+ DUMPCB(traceid, dmho) ;
+ TRACE(traceid, ("Leaving make_dmho_from_stem\n") ) ;
+ return ;
+} // End of make_dmho_from_stem function
+//
+// make_stem_from_dmho will return a Delete Message Handle Options
+//                 structure into a Stem Variable:
+//
+//                     .VER   -> Version
+//                     .OPT   -> Options
+//                     .ZLIST -> VER OPT
+//
+void make_stem_from_dmho ( MQULONG    traceid
+                         , MQDMHO   * dmho
+                         , RXSTRING   stem
+                         )
+{
+ char                   zlist[100] ;  // Char version of .ZLIST
+ zlist[0] = '\0'   ;
+ TRACE(traceid, ("Entering make_stem_from_dmho\n") ) ;
+ stem_from_long  (traceid, zlist, stem, "VER", dmho->Version) ;
+ stem_from_long  (traceid, zlist, stem, "OPT", dmho->Options) ;
+ stem_from_string(traceid, zlist, stem, "ZLIST", zlist, strlen(zlist)) ;
+ TRACE(traceid, ("Leaving make_stem_from_dmho\n") ) ;
+ return ;
+} // End of make_stem_from_dmho function
+ //
+ //
+//
+//
+// make_smpo_from_stem will return a Set Message Property Options
+//                 structure from the contents of a Stem Variable:
+//
+//                     .VER   -> Version
+//                     .OPT   -> Options
+//
+void make_smpo_from_stem ( MQULONG    traceid
+                         , MQSMPO   * smpo
+                         , RXSTRING   stem
+                         )
+{
+ TRACE(traceid, ("Entering make_smpo_from_stem\n") ) ;
+ memcpy(smpo, &smpo_default, sizeof(MQSMPO)) ;
+ stem_to_long(traceid, stem, "VER", &smpo->Version) ;
+ stem_to_long(traceid, stem, "OPT", &smpo->Options) ;
+ DUMPCB(traceid, smpo) ;
+ TRACE(traceid, ("Leaving make_smpo_from_stem\n") ) ;
+ return ;
+} // End of make_smpo_from_stem function
+//
+// make_stem_from_smpo will return a Set Message Property Options
+//                 structure into a Stem Variable:
+//
+//                     .VER   -> Version
+//                     .OPT   -> Options
+//                     .ZLIST -> VER OPT
+//
+void make_stem_from_smpo ( MQULONG    traceid
+                         , MQSMPO   * smpo
+                         , RXSTRING   stem
+                         )
+{
+ char                   zlist[100] ;  // Char version of .ZLIST
+ zlist[0] = '\0'   ;
+ TRACE(traceid, ("Entering make_stem_from_smpo\n") ) ;
+ stem_from_long  (traceid, zlist, stem, "VER", smpo->Version) ;
+ stem_from_long  (traceid, zlist, stem, "OPT", smpo->Options) ;
+ stem_from_string(traceid, zlist, stem, "ZLIST", zlist, strlen(zlist)) ;
+ TRACE(traceid, ("Leaving make_stem_from_smpo\n") ) ;
+ return ;
+} // End of make_stem_from_smpo function
+//
+//
+//
+//
+// make_impo_from_stem will return an Inquire Message Property Options
+//                 structure from the contents of a Stem Variable:
+//
+//                     .VER               -> Version
+//                     .OPT               -> Options
+//                     .RQENC             -> RequestedEncoding
+//                     .REQENC            -> RequestedEncoding alias
+//                     .REQUESTEDENCODING -> RequestedEncoding alias
+//                     .RQCCSI            -> RequestedCCSID
+//                     .REQCCSI           -> RequestedCCSID alias
+//                     .REQUESTEDCCSID    -> RequestedCCSID alias
+//
+void make_impo_from_stem ( MQULONG    traceid
+                         , MQIMPO   * impo
+                         , RXSTRING   stem
+                         )
+{
+ TRACE(traceid, ("Entering make_impo_from_stem\n") ) ;
+  memcpy(impo, &impo_default, sizeof(MQIMPO)) ;
+  stem_to_long(traceid, stem, "VER"              , &impo->Version)          ;
+  stem_to_long(traceid, stem, "OPT"              , &impo->Options)          ;
+  stem_to_long(traceid, stem, "RQENC"            , &impo->RequestedEncoding);
+  stem_to_long(traceid, stem, "REQENC"           , &impo->RequestedEncoding);
+  stem_to_long(traceid, stem, "REQUESTEDENCODING", &impo->RequestedEncoding);
+  stem_to_long(traceid, stem, "RQCCSI"           , &impo->RequestedCCSID)   ;
+  stem_to_long(traceid, stem, "REQCCSI"          , &impo->RequestedCCSID)   ;
+  stem_to_long(traceid, stem, "REQUESTEDCCSID"   , &impo->RequestedCCSID)   ;
+  DUMPCB(traceid, impo) ;
+  TRACE(traceid, ("Leaving make_impo_from_stem\n") ) ;
+  return ;
+ } // End of make_impo_from_stem function
+ //
+ // make_stem_from_impo will return an Inquire Message Property Options
+ //                 structure into a Stem Variable:
+ //
+ //                     .VER               -> Version
+ //                     .OPT               -> Options
+ //                     .RQENC             -> RequestedEncoding
+ //                     .REQENC            -> RequestedEncoding alias
+ //                     .REQUESTEDENCODING -> RequestedEncoding alias
+ //                     .RTENC             -> ReturnedEncoding
+ //                     .RETENC            -> ReturnedEncoding alias
+ //                     .RETURNEDENCODING  -> ReturnedEncoding alias
+ //                     .RQCCSI            -> RequestedCCSID
+ //                     .REQCCSI           -> RequestedCCSID alias
+ //                     .REQUESTEDCCSID    -> RequestedCCSID alias
+ //                     .RTCCSI            -> ReturnedCCSID
+ //                     .RETCCSI           -> ReturnedCCSID alias
+ //                     .RETURNEDCCSID     -> ReturnedCCSID alias
+ //                     .ZLIST             -> VER OPT RQENC RQCCSI RTENC RTCCSI
+ //
+ void make_stem_from_impo ( MQULONG    traceid
+                          , MQIMPO   * impo
+                          , RXSTRING   stem
+                         )
+{
+ char                   zlist[100]  ;  // Char version of .ZLIST
+ zlist[0] = '\0' ;
+ TRACE(traceid, ("Entering make_stem_from_impo\n") ) ;
+ stem_from_long  (traceid, zlist, stem, "VER"   , impo->Version)          ;
+ stem_from_long  (traceid, zlist, stem, "OPT"   , impo->Options)          ;
+ stem_from_long  (traceid, zlist, stem, "RQENC" , impo->RequestedEncoding);
+ stem_from_long  (traceid, zlist, stem, "RQCCSI", impo->RequestedCCSID)   ;
+ stem_from_long  (traceid, zlist, stem, "RTENC" , impo->ReturnedEncoding) ;
+ stem_from_long  (traceid, zlist, stem, "RTCCSI", impo->ReturnedCCSID)    ;
+ stem_from_long  (traceid, NULL, stem, "REQENC"           , impo->RequestedEncoding);
+ stem_from_long  (traceid, NULL, stem, "REQUESTEDENCODING", impo->RequestedEncoding);
+ stem_from_long  (traceid, NULL, stem, "RETENC"           , impo->ReturnedEncoding) ;
+ stem_from_long  (traceid, NULL, stem, "RETURNEDENCODING" , impo->ReturnedEncoding) ;
+ stem_from_long  (traceid, NULL, stem, "REQCCSI"          , impo->RequestedCCSID)   ;
+ stem_from_long  (traceid, NULL, stem, "REQUESTEDCCSID"   , impo->RequestedCCSID)   ;
+ stem_from_long  (traceid, NULL, stem, "RETCCSI"          , impo->ReturnedCCSID)    ;
+ stem_from_long  (traceid, NULL, stem, "RETURNEDCCSID"    , impo->ReturnedCCSID)    ;
+ stem_from_string(traceid, zlist, stem, "ZLIST", zlist, strlen(zlist)) ;
+ TRACE(traceid, ("Leaving make_stem_from_impo\n") ) ;
+ return ;
+} // End of make_stem_from_impo function
+//
+//
+//
+//
+// make_dmpo_from_stem will return a Delete Message Property Options
+//                 structure from the contents of a Stem Variable:
+//
+//                     .VER   -> Version
+//                     .OPT   -> Options
+//
+void make_dmpo_from_stem ( MQULONG    traceid
+                         , MQDMPO   * dmpo
+                         , RXSTRING   stem
+                         )
+{
+ TRACE(traceid, ("Entering make_dmpo_from_stem\n") ) ;
+ memcpy(dmpo, &dmpo_default, sizeof(MQDMPO)) ;
+ stem_to_long(traceid, stem, "VER", &dmpo->Version) ;
+ stem_to_long(traceid, stem, "OPT", &dmpo->Options) ;
+  DUMPCB(traceid, dmpo) ;
+  TRACE(traceid, ("Leaving make_dmpo_from_stem\n") ) ;
+  return ;
+ } // End of make_dmpo_from_stem function
+ //
+ // make_stem_from_dmpo will return a Delete Message Property Options
+ //                 structure into a Stem Variable:
+ //
+ //                     .VER   -> Version
+ //                     .OPT   -> Options
+ //                     .ZLIST -> VER OPT
+ //
+ void make_stem_from_dmpo ( MQULONG    traceid
+                          , MQDMPO   * dmpo
+                          , RXSTRING   stem
+                          )
+ {
+ char                   zlist[100]  ;  // Char version of .ZLIST
+  zlist[0] = '\0'   ;
+  TRACE(traceid, ("Entering make_stem_from_dmpo\n") ) ;
+  stem_from_long  (traceid, zlist, stem, "VER", dmpo->Version) ;
+  stem_from_long  (traceid, zlist, stem, "OPT", dmpo->Options) ;
+  stem_from_string(traceid, zlist, stem, "ZLIST", zlist, strlen(zlist)) ;
+  TRACE(traceid, ("Leaving make_stem_from_dmpo\n") ) ;
+  return ;
+ } // End of make_stem_from_dmpo function
+//
+//
+//
+//
+// make_bmho_from_stem will return a Buffer To Message Handle Options
+//                 structure from the contents of a Stem Variable:
+//
+//                     .VER   -> Version
+//                     .OPT   -> Options
+//
+void make_bmho_from_stem ( MQULONG    traceid
+                         , MQBMHO   * bmho
+                         , RXSTRING   stem
+                         )
+{
+ TRACE(traceid, ("Entering make_bmho_from_stem\n") ) ;
+ memcpy(bmho, &bmho_default, sizeof(MQBMHO)) ;
+ stem_to_long(traceid, stem, "VER", &bmho->Version) ;
+ stem_to_long(traceid, stem, "OPT", &bmho->Options) ;
+ DUMPCB(traceid, bmho) ;
+ TRACE(traceid, ("Leaving make_bmho_from_stem\n") ) ;
+ return ;
+} // End of make_bmho_from_stem function
+//
+// make_stem_from_bmho will return a Buffer To Message Handle Options
+//                 structure into a Stem Variable:
+//
+//                     .VER   -> Version
+//                     .OPT   -> Options
+//                     .ZLIST -> VER OPT
+//
+void make_stem_from_bmho ( MQULONG    traceid
+                         , MQBMHO   * bmho
+                         , RXSTRING   stem
+                         )
+{
+ char                  zlist[100]  ;  // Char version of .ZLIST
+ zlist[0] = '\0' ;
+ TRACE(traceid, ("Entering make_stem_from_bmho\n") ) ;
+ stem_from_long  (traceid, zlist, stem, "VER", bmho->Version) ;
+ stem_from_long  (traceid, zlist, stem, "OPT", bmho->Options) ;
+ stem_from_string(traceid, zlist, stem, "ZLIST", zlist, strlen(zlist)) ;
+ TRACE(traceid, ("Leaving make_stem_from_bmho\n") ) ;
+ return ;
+} // End of make_stem_from_bmho function
+//
+//
+//
+// Message handle to buffer options     MQMHBO
+//
+// make_mhbo_from_stem will return a Message Handle To Buffer Options
+//                 structure from the contents of a Stem Variable:
+//
+//                     .VER   -> Version
+//                     .OPT   -> Options
+//
+void make_mhbo_from_stem ( MQULONG    traceid
+                         , MQMHBO   * mhbo
+                         , RXSTRING   stem
+                         )
+{
+ TRACE(traceid, ("Entering make_mhbo_from_stem\n") ) ;
+ memcpy(mhbo, &mhbo_default, sizeof(MQMHBO)) ;
+ stem_to_long(traceid, stem, "VER", &mhbo->Version) ;
+ stem_to_long(traceid, stem, "OPT", &mhbo->Options) ;
+ DUMPCB(traceid, mhbo) ;
+ TRACE(traceid, ("Leaving make_mhbo_from_stem\n") ) ;
+ return ;
+} // End of make_mhbo_from_stem function
+//
+// make_stem_from_mhbo will return a Message Handle To Buffer Options
+//                 structure into a Stem Variable:
+//
+//                     .VER   -> Version
+//                     .OPT   -> Options
+//                     .ZLIST -> VER OPT
+//
+void make_stem_from_mhbo ( MQULONG    traceid
+                         , MQMHBO   * mhbo
+                         , RXSTRING   stem
+                         )
+{
+ char                 zlist[100]  ;  // Char version of .ZLIST
+ zlist[0] = '\0' ;
+ TRACE(traceid, ("Entering make_stem_from_mhbo\n") ) ;
+ stem_from_long  (traceid, zlist, stem, "VER", mhbo->Version) ;
+ stem_from_long  (traceid, zlist, stem, "OPT", mhbo->Options) ;
+ stem_from_string(traceid, zlist, stem, "ZLIST", zlist, strlen(zlist)) ;
+ TRACE(traceid, ("Leaving make_stem_from_mhbo\n") ) ;
+ return ;
+} // End of make_stem_from_mhbo function
+//
+// make_pd_from_stem will return a Property Descriptor
+//                 structure from the contents of a Stem Variable:
+//
+//                     .VER         -> Version
+//                     .OPT         -> Options
+//                     .SUP         -> Support
+//                     .SUPPORT     -> Support alias
+//                     .CTX         -> Context
+//                     .CONTEXT     -> Context alias
+//                     .CO          -> CopyOptions
+//                     .COPYOPTIONS -> CopyOptions alias
+//
+void make_pd_from_stem ( MQULONG    traceid
+                       , MQPD     * pd
+                       , RXSTRING   stem
+                       )
+{
+ TRACE(traceid, ("Entering make_pd_from_stem\n") ) ;
+ memcpy(pd, &pd_default, sizeof(MQPD)) ;
+ stem_to_long(traceid, stem, "VER"        , &pd->Version)     ;
+ stem_to_long(traceid, stem, "OPT"        , &pd->Options)     ;
+ stem_to_long(traceid, stem, "SUP"        , &pd->Support)     ;
+ stem_to_long(traceid, stem, "SUPPORT"    , &pd->Support)     ;
+ stem_to_long(traceid, stem, "CTX"        , &pd->Context)     ;
+ stem_to_long(traceid, stem, "CONTEXT"    , &pd->Context)     ;
+ stem_to_long(traceid, stem, "CO"         , &pd->CopyOptions) ;
+ stem_to_long(traceid, stem, "COPYOPTIONS", &pd->CopyOptions) ;
+ DUMPCB(traceid, pd) ;
+ TRACE(traceid, ("Leaving make_pd_from_stem\n") ) ;
+ return ;
+} // End of make_pd_from_stem function
+//
+// make_stem_from_pd will return a Property Descriptor
+//                 structure into a Stem Variable:
+//
+//                     .VER         -> Version
+//                     .OPT         -> Options
+//                     .SUP         -> Support
+//                     .SUPPORT     -> Support alias
+//                     .CTX         -> Context
+//                     .CONTEXT     -> Context alias
+//                     .CO          -> CopyOptions
+//                     .COPYOPTIONS -> CopyOptions alias
+//                     .ZLIST       -> VER OPT SUP CTX CO
+//
+void make_stem_from_pd ( MQULONG    traceid
+                       , MQPD     * pd
+                       , RXSTRING   stem
+                       )
+{
+ char                   zlist[100] ;  // Char version of .ZLIST
+ zlist[0] = '\0';
+ TRACE(traceid, ("Entering make_stem_from_pd\n") ) ;
+ stem_from_long  (traceid, zlist, stem, "VER", pd->Version)     ;
+ stem_from_long  (traceid, zlist, stem, "OPT", pd->Options)     ;
+ stem_from_long  (traceid, zlist, stem, "SUP", pd->Support)     ;
+ stem_from_long  (traceid, zlist, stem, "CTX", pd->Context)     ;
+ stem_from_long  (traceid, zlist, stem, "CO" , pd->CopyOptions) ;
+ stem_from_long  (traceid, NULL, stem, "SUPPORT"    , pd->Support)     ;
+ stem_from_long  (traceid, NULL, stem, "CONTEXT"    , pd->Context)     ;
+ stem_from_long  (traceid, NULL, stem, "COPYOPTIONS", pd->CopyOptions) ;
+ stem_from_string(traceid, zlist, stem, "ZLIST", zlist, strlen(zlist)) ;
+ TRACE(traceid, ("Leaving make_stem_from_pd\n") ) ;
+ return ;
+} // End of make_stem_from_pd function
 //
 // make_md_from_stem will return a Put Message Options Desc from the
 //                   contents of a Stem Variable:
@@ -2524,7 +3076,7 @@ void geteventname(char * output, const MQLONG pcfnum )
   varvalc[sv1.shvvalue.strlength] = 0                 ; // Ensure zero terminated
 
   if (   (sv1rc != RXSHV_OK)
-      || (sv1.shvname.strlength == 0) )
+      !! (sv1.shvname.strlength == 0) )
     sprintf(varvalc,"%"PRId32,(int32_t)pcfnum)        ; // When something goes wrong
 
   // TRACE(EVENT, ("Converted %"PRId32" into %s\n",(int32_t)pcfnum,varvalc) )  ;
@@ -2728,7 +3280,7 @@ FTYPE  RXMQCONN  RXMQPARM
  MQULONG                 traceid = CONN   ;  // This function trace id
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null QM name"},
         {  -3, "Zero length QM name"},
         {  -4, "QM name too long"},
@@ -2793,7 +3345,7 @@ FTYPE  RXMQDISC  RXMQPARM
  MQULONG                 traceid = DISC   ;  // This function trace id
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         { -98, "Not Connected to a QM"},
         { -99, "UNKNOWN FAILURE"}} ;
 
@@ -2824,7 +3376,1382 @@ FTYPE  RXMQDISC  RXMQPARM
 return 0;
  } // End of RXMQDISC function
 
+//
+//
+// Create a message handle     MQCRTMH
+//
+//   Call:   rc = RXMQmh(handle)
+//           rc = RXMQmh(handle, cmho)
+//
+//           handle : Rexx variable receiving MQHMSG, e.g. 'mh1'
+//           cmho   : optional MQCMHO stem, e.g. 'cmho1.'
+//
+FTYPE  RXMQMH  RXMQPARM
+{
+ RXMQCB                * anchor = 0       ;  // RXMQ Control Block
+ MQLONG                  rc = 0           ;  // Function Return Code
+ MQLONG                  mqrc = 0         ;  // MQ RC
+ MQLONG                  mqac = 0         ;  // MQ AC
+ MQULONG                 traceid = MH     ;  // This function trace id
+ RXSTRING                RX_handle        ;  // Rexx variable receiving HMSG
+ RXSTRING                RX_cmho          ;  // MQCMHO input/output stem
+  RXSTRING                RXMQ_new         ;  // RXMQ. stem
+  RXSTRING                RXMQ_old         ;  // PREFIX stem
+  MQHMSG                  hmsg = MQHM_NONE ;  // Message handle
+  MQCMHO                  cmho             ;  // Create message handle options
+  RETMSG ReturnMsg[] = {
+         {  -1, "Bad number of parameters"},
+         {  -2, "Null handle name"},
+         {  -3, "Zero length handle name"},
+         {  -4, "Null CMHO"},
+         {  -5, "Zero length CMHO"},
+         { -99, "UNKNOWN FAILURE"}};
+  rc = set_envir (afuncname, &traceid, &anchor) ;
+ //
+ // Check the parms
+ //
+  if ( (rc == 0) && ( (aargc < 1) !! (aargc > 2) ) ) rc = -1 ;
+  if ( (rc == 0) && RXNULLSTRING(aargv[0]) )         rc = -2 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[0]) )      rc = -3 ;
+ if ( (rc == 0) && (aargc == 2) && RXNULLSTRING(aargv[1]) )    rc = -4 ;
+ if ( (rc == 0) && (aargc == 2) && RXZEROLENSTRING(aargv[1]) ) rc = -5 ;
+//
+// No connection: return a real MQRC so existing REXX rcmap logic works
+//
+ if ( (rc == 0) && ( anchor->QMh == 0 ) )
+   {
+    mqrc = MQCC_FAILED ;
+    mqac = MQRC_HCONN_ERROR ;
+    rc   = mqac ;
+   }
+//
+// Now the parms are correct, get them
+//
+ if (rc == 0)
+   {
+    memcpy(&RX_handle, &aargv[0], sizeof(RX_handle)) ;
+    stem_from_int64(traceid, NULL, RX_handle, "", MQHM_NONE) ;
+    TRACE(traceid, ("RX_handle = %.*s\n",
+          (int)RX_handle.strlength, RX_handle.strptr) ) ;
+    memcpy(&cmho, &cmho_default, sizeof(MQCMHO)) ;
+    if (aargc == 2)
+      {
+       memcpy(&RX_cmho, &aargv[1], sizeof(RX_cmho)) ;
+       TRACE(traceid, ("RX_cmho = %.*s\n",
+             (int)RX_cmho.strlength, RX_cmho.strptr) ) ;
+       make_cmho_from_stem(traceid, &cmho, RX_cmho) ;
+      }
+   }
+//
+// Do the MQCRTMH
+//
+ if (rc == 0)
+   {
+    TRACE(traceid, ("Calling MQCRTMH\n") ) ;
+    MQCRTMH ( anchor->QMh,
+              &cmho,
+              &hmsg,
+              &mqrc,
+              &mqac ) ;
+    rc = mqac ;
+   }
+//
+// If it worked, set the Rexx handle variables
+//
+ if (rc == 0)
+   {
+    MAKERXSTRING(RXMQ_new, "RXMQ.", sizeof("RXMQ.")-1) ;
+    MAKERXSTRING(RXMQ_old, PREFIX,  sizeof(PREFIX)-1)  ;
+    stem_from_int64(traceid, NULL, RX_handle, "",     (MQINT64)hmsg) ;
+    stem_from_int64(traceid, NULL, RXMQ_new,  "HMSG", (MQINT64)hmsg) ;
+    stem_from_int64(traceid, NULL, RXMQ_old,  "HMSG", (MQINT64)hmsg) ;
+    if (aargc == 2)
+    {
+      make_stem_from_cmho(traceid, &cmho, RX_cmho) ;
+    }
+   }
+//
+// Set the LAST variables, and the function return string
+//
+ set_return(rc,mqrc,mqac,afuncname,ReturnMsg,aretstr,traceid,"") ;
+return 0;
+} // End of RXMQMH function
+//
+//
+// Delete a message handle     MQDLTMH
+//
+//   Call:   rc = RXMQdmh(handle)
+//           rc = RXMQdmh(handle, dmho)
+//
+//           handle : Rexx variable containing MQHMSG, e.g. 'mh1'
+//           dmho   : optional MQDMHO stem, e.g. 'dmho1.'
+//
+FTYPE  RXMQDMH  RXMQPARM
+{
+ RXMQCB                * anchor = 0       ;  // RXMQ Control Block
+ MQLONG                  rc = 0           ;  // Function Return Code
+ MQLONG                  mqrc = 0         ;  // MQ RC
+ MQLONG                  mqac = 0         ;  // MQ AC
+ MQULONG                 traceid = DMH    ;  // This function trace id
+ RXSTRING                RX_handle        ;  // Rexx variable containing HMSG
+ RXSTRING                RX_dmho          ;  // MQDMHO input/output stem
+ RXSTRING                RXMQ_new         ;  // RXMQ. stem
+ RXSTRING                RXMQ_old         ;  // PREFIX stem
+ MQHMSG                  hmsg = MQHM_NONE ;  // Message handle
+ MQINT64                 hmsg64 = 0       ;  // Intermediate value
+ MQDMHO                  dmho             ;  // Delete message handle options
+ RETMSG ReturnMsg[] = {
+        {  -1, "Bad number of parameters"},
+        {  -2, "Null handle name"},
+        {  -3, "Zero length handle name"},
+        {  -4, "Null DMHO"},
+        {  -5, "Zero length DMHO"},
+        { -99, "UNKNOWN FAILURE"}} ;
+ rc = set_envir (afuncname, &traceid, &anchor) ;
+//
+// Check the parms
+//
+ if ( (rc == 0) && ( (aargc < 1) !! (aargc > 2) ) ) rc = -1 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[0]) )        rc = -2 ;
+  if ( (rc == 0) && RXZEROLENSTRING(aargv[0]) )      rc = -3 ;
+  if ( (rc == 0) && (aargc == 2) && RXNULLSTRING(aargv[1]) )    rc = -4 ;
+  if ( (rc == 0) && (aargc == 2) && RXZEROLENSTRING(aargv[1]) ) rc = -5 ;
+ //
+ // No connection: return a real MQRC so existing REXX rcmap logic works
+ //
+  if ( (rc == 0) && ( anchor->QMh == 0 ) )
+    {
+     mqrc = MQCC_FAILED ;
+     mqac = MQRC_HCONN_ERROR ;
+     rc   = mqac ;
+    }
+ //
+ // Now the parms are correct, get them
+ //
+  if (rc == 0)
+    {
+     memcpy(&RX_handle, &aargv[0], sizeof(RX_handle)) ;
+    TRACE(traceid, ("RX_handle = %.*s\n",
+          (int)RX_handle.strlength, RX_handle.strptr) ) ;
+    stem_to_int64(traceid, RX_handle, "", &hmsg64) ;
+    hmsg = (MQHMSG)hmsg64 ;
+   memcpy(&dmho, &dmho_default, sizeof(MQDMHO)) ;
+ if (aargc == 2)
+  {
+   memcpy(&RX_dmho, &aargv[1], sizeof(RX_dmho)) ;
+   TRACE(traceid, ("RX_dmho = %.*s\n",
+         (int)RX_dmho.strlength, RX_dmho.strptr) ) ;
+   make_dmho_from_stem(traceid, &dmho, RX_dmho) ;
+   make_stem_from_dmho(traceid, &dmho, RX_dmho) ;
+  }
 
+   }
+//
+// Do the MQDLTMH
+//
+ if (rc == 0)
+   {
+    TRACE(traceid, ("Calling MQDLTMH\n") ) ;
+    MQDLTMH ( anchor->QMh,
+              &hmsg,
+              &dmho,
+              &mqrc,
+              &mqac ) ;
+    rc = mqac ;
+   }
+//
+// If it worked, reset the Rexx handle variables
+//
+ if (rc == 0)
+   {
+    MAKERXSTRING(RXMQ_new, "RXMQ.", sizeof("RXMQ.")-1) ;
+    MAKERXSTRING(RXMQ_old, PREFIX,  sizeof(PREFIX)-1)  ;
+    stem_from_int64(traceid, NULL, RX_handle, "",     (MQINT64)MQHM_NONE) ;
+    stem_from_int64(traceid, NULL, RXMQ_new,  "HMSG", (MQINT64)MQHM_NONE) ;
+    stem_from_int64(traceid, NULL, RXMQ_old,  "HMSG", (MQINT64)MQHM_NONE) ;
+    if (aargc == 2)
+    {
+      make_stem_from_dmho(traceid, &dmho, RX_dmho) ;
+    }
+   }
+//
+// Set the LAST variables, and the function return string
+//
+ set_return(rc,mqrc,mqac,afuncname,ReturnMsg,aretstr,traceid,"") ;
+return 0;
+} // End of RXMQDMH function
+//
+//
+//
+// Set a message property     MQSETMP
+//
+//   Call:   rc = RXMQsmp(handle, smpo, name, pd, type, value)
+//
+//           handle : Rexx variable containing MQHMSG, e.g. 'mh1'
+//           smpo   : MQSMPO input/output stem, e.g. 'smpo1.'
+//           name   : property name, e.g. 'usr.test'
+//           pd     : MQPD input/output stem, e.g. 'pd1.'
+//           type   : MQTYPE_* value
+//           value  : property value
+//
+//   This is a temporary integration stub.
+//   It proves that RXMQSMP / CPPMSMP is correctly exported.
+//
+//
+// Set a message property     MQSETMP
+//
+//   Call:   rc = RXMQsmp(handle, smpo, name, pd, type, value)
+//
+//           handle : Rexx variable containing MQHMSG, e.g. 'mh1'
+//           smpo   : MQSMPO input/output stem, e.g. 'smpo1.'
+//           name   : property name, e.g. 'usr.test'
+//           pd     : MQPD input/output stem, e.g. 'pd1.'
+//           type   : MQTYPE_* value
+//           value  : property value
+//
+FTYPE  RXMQSMP  RXMQPARM
+{
+ RXMQCB                * anchor = 0       ;  // RXMQ Control Block
+ MQLONG                  rc = 0           ;  // Function Return Code
+ MQLONG                  mqrc = 0         ;  // MQ RC
+ MQLONG                  mqac = 0         ;  // MQ AC
+ MQULONG                 traceid = SMP    ;  // This function trace id
+ RXSTRING                RX_handle        ;  // Rexx variable containing HMSG
+ RXSTRING                RX_smpo          ;  // MQSMPO input/output stem
+ RXSTRING                RX_name          ;  // Property name
+ RXSTRING                RX_pd            ;  // MQPD input/output stem
+ RXSTRING                RX_type          ;  // MQ property type
+ RXSTRING                RX_value         ;  // MQ property value
+ MQHMSG                  hmsg = MQHM_NONE ;  // Message handle
+ MQINT64                 hmsg64 = 0       ;  // Intermediate handle value
+ MQSMPO                  smpo             ;  // Set message property options
+ MQPD                    pd               ;  // Property descriptor
+ MQLONG                  type = 0         ;  // Property type
+ MQCHARV                 name             ;  // Property name
+ MQLONG                  valueLength = 0  ;  // Property value length
+ MQPTR                   value = NULL     ;  // Property value pointer
+ MQLONG                  int32Value = 0   ;  // Binary MQTYPE_INT32 value
+ MQINT64                 int64Value = 0   ;
+ char                    valueText[64]    ;  // Null-terminated REXX value
+ char                  * endptr = NULL    ;  // Numeric conversion end
+ intmax_t                 parsedValue = 0 ;  // Converted REXX integer
+ MQLONG                  booleanValue = 0 ;
+ MQFLOAT64               float64Value = 0 ;
+ MQFLOAT32               float32Value = 0 ;
+ RETMSG ReturnMsg[] = {
+        {  -1, "Bad number of parameters"},
+        {  -2, "Null handle name"},
+        {  -3, "Zero length handle name"},
+        {  -4, "Null SMPO"},
+        {  -5, "Zero length SMPO"},
+        {  -6, "Null property name"},
+        {  -7, "Zero length property name"},
+        {  -8, "Null PD"},
+        {  -9, "Zero length PD"},
+        { -10, "Null property type"},
+        { -11, "Zero length property type"},
+        { -12, "Null property value"},
+        { -13, "Invalid MQTYPE_INT32 property value"},
+        { -99, "UNKNOWN FAILURE"} } ;
+ rc = set_envir (afuncname, &traceid, &anchor) ;
+//
+// Check the parms
+//
+ if ( (rc == 0) && ( aargc != 6 ) )              rc = -1 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[0]) )      rc = -2 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[0]) )   rc = -3 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[1]) )      rc = -4 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[1]) )   rc = -5 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[2]) )      rc = -6 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[2]) )   rc = -7 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[3]) )      rc = -8 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[3]) )   rc = -9 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[4]) )      rc = -10 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[4]) )   rc = -11 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[5]) )      rc = -12 ;
+//
+// No connection: return a real MQRC so existing REXX rcmap logic works
+//
+ if ( (rc == 0) && ( anchor->QMh == 0 ) )
+   {
+    mqrc = MQCC_FAILED ;
+    mqac = MQRC_HCONN_ERROR ;
+    rc   = mqac ;
+   }
+//
+// Now the parms are correct, get them
+//
+ if (rc == 0)
+   {
+    memcpy(&RX_handle, &aargv[0], sizeof(RX_handle)) ;
+    memcpy(&RX_smpo,   &aargv[1], sizeof(RX_smpo))  ;
+    memcpy(&RX_name,   &aargv[2], sizeof(RX_name))  ;
+    memcpy(&RX_pd,     &aargv[3], sizeof(RX_pd))    ;
+    memcpy(&RX_type,   &aargv[4], sizeof(RX_type))  ;
+    memcpy(&RX_value,  &aargv[5], sizeof(RX_value)) ;
+    TRACE(traceid, ("RX_handle = %.*s\n",
+          (int)RX_handle.strlength, RX_handle.strptr) ) ;
+    TRACE(traceid, ("RX_smpo = %.*s\n",
+          (int)RX_smpo.strlength, RX_smpo.strptr) ) ;
+    TRACE(traceid, ("RX_name = %.*s\n",
+          (int)RX_name.strlength, RX_name.strptr) ) ;
+    TRACE(traceid, ("RX_pd = %.*s\n",
+          (int)RX_pd.strlength, RX_pd.strptr) ) ;
+    TRACE(traceid, ("RX_type = %.*s\n",
+          (int)RX_type.strlength, RX_type.strptr) ) ;
+    stem_to_int64(traceid, RX_handle, "", &hmsg64) ;
+    hmsg = (MQHMSG)hmsg64 ;
+    memcpy(&smpo, &smpo_default, sizeof(MQSMPO)) ;
+    make_smpo_from_stem(traceid, &smpo, RX_smpo) ;
+    make_stem_from_smpo(traceid, &smpo, RX_smpo) ;
+    memcpy(&pd, &pd_default, sizeof(MQPD)) ;
+    make_pd_from_stem(traceid, &pd, RX_pd) ;
+    make_stem_from_pd(traceid, &pd, RX_pd) ;
+    parm_to_ulong(RX_type, &type) ;
+    memset(&name, 0, sizeof(MQCHARV)) ;
+    name.VSPtr     = RX_name.strptr ;
+    name.VSLength  = RX_name.strlength ;
+    name.VSCCSID   = MQCCSI_APPL ;
+    name.VSBufSize = RX_name.strlength ;
+    //
+    // By default, preserve the original REXX byte string.
+    // This remains the existing behaviour for MQTYPE_STRING
+    // and for all types not yet explicitly converted.
+    //
+         valueLength = RX_value.strlength ;
+         value       = RX_value.strptr ;
+
+     if (type == MQTYPE_FLOAT64)
+       {
+        if (RX_value.strlength == 0)
+          {
+           rc = -13 ;
+          }
+        else
+        if (RX_value.strlength >= sizeof(valueText))
+          {
+           rc = -13 ;
+          }
+        else
+          {
+           memcpy(valueText,
+                  RX_value.strptr,
+                  RX_value.strlength) ;
+           valueText[RX_value.strlength] = 0 ;
+           errno       = 0 ;
+           endptr      = NULL ;
+           float64Value = strtod(valueText,
+                                 &endptr) ;
+           if (errno == ERANGE)
+             {
+              rc = -13 ;
+             }
+           else
+           if (endptr == valueText)
+             {
+              rc = -13 ;
+             }
+           else
+           if (*endptr != 0)
+             {
+              rc = -13 ;
+             }
+           else
+             {
+              valueLength = sizeof(float64Value) ;
+              value       = (MQPTR)&float64Value ;
+             }
+          }
+       }
+     //
+     // MQTYPE_FLOAT32:
+     //
+     if (type == MQTYPE_FLOAT32)
+       {
+        if (RX_value.strlength == 0)
+          {
+           rc = -13 ;
+          }
+        else
+        if (RX_value.strlength >= sizeof(valueText))
+          {
+           rc = -13 ;
+          }
+        else
+          {
+           memcpy(valueText,
+                  RX_value.strptr,
+                  RX_value.strlength) ;
+           valueText[RX_value.strlength] = 0 ;
+           errno  = 0 ;
+           endptr = NULL ;
+           float32Value = (MQFLOAT32)strtod(valueText,
+                                            &endptr) ;
+           if (errno == ERANGE)
+             {
+              rc = -13 ;
+             }
+           else
+           if (endptr == valueText)
+             {
+              rc = -13 ;
+             }
+           else
+           if (*endptr != 0)
+             {
+              rc = -13 ;
+             }
+           else
+             {
+              valueLength = sizeof(float32Value) ;
+              value       = (MQPTR)&float32Value ;
+             }
+          }
+       }
+     if (type == MQTYPE_BOOLEAN)
+       {
+        if (RX_value.strlength == 1)
+          {
+           if (*RX_value.strptr == '0')
+             {
+              booleanValue = 0 ;
+              valueLength  = sizeof(booleanValue) ;
+              value        = (MQPTR)&booleanValue ;
+             }
+           else
+           if (*RX_value.strptr == '1')
+             {
+              booleanValue = 1 ;
+              valueLength  = sizeof(booleanValue) ;
+              value        = (MQPTR)&booleanValue ;
+             }
+           else
+             {
+              rc = -13 ;
+             }
+          }
+        else
+          {
+           rc = -13 ;
+          }
+       }
+    //
+    // MQTYPE_INT32:
+    // Convert the printable REXX value, for example "25",
+    // into the four-byte binary MQLONG required by MQSETMP.
+    //
+         if (type == MQTYPE_INT32)
+           {
+           if (RX_value.strlength == 0)
+             {
+              rc = -13 ;
+             }
+           else
+           if (RX_value.strlength >= sizeof(valueText))
+             {
+              rc = -13 ;
+             }
+           else
+             {
+              memcpy(valueText,
+                     RX_value.strptr,
+                     RX_value.strlength) ;
+              valueText[RX_value.strlength] = 0 ;
+           errno       = 0 ;
+           endptr      = NULL ;
+           parsedValue = strtoimax(valueText,
+                                   &endptr,
+                                   10) ;
+           if (errno == ERANGE)
+             {
+              rc = -13 ;
+             }
+           else
+           if (endptr == valueText)
+             {
+              rc = -13 ;
+             }
+           else
+           if (*endptr != 0)
+             {
+              rc = -13 ;
+             }
+           else
+           if (parsedValue < INT32_MIN)
+             {
+              rc = -13 ;
+             }
+           else
+           if (parsedValue > INT32_MAX)
+             {
+              rc = -13 ;
+             }
+           else
+             {
+              int32Value  = (MQLONG)parsedValue ;
+              valueLength = sizeof(int32Value) ;
+              value       = (MQPTR)&int32Value ;
+             }
+          }
+       }
+     //
+     // MQTYPE_INT64:
+     // Convert the printable REXX value into the
+     // eight-byte binary MQINT64 required by MQSETMP.
+     //
+     if (type == MQTYPE_INT64)
+       {
+        if (RX_value.strlength == 0)
+          {
+           rc = -13 ;
+          }
+        else
+        if (RX_value.strlength >= sizeof(valueText))
+          {
+           rc = -13 ;
+          }
+        else
+          {
+           memcpy(valueText,
+                  RX_value.strptr,
+                  RX_value.strlength) ;
+           valueText[RX_value.strlength] = 0 ;
+           errno       = 0 ;
+           endptr      = NULL ;
+           parsedValue = strtoimax(valueText,
+                                   &endptr,
+                                   10) ;
+           if (errno == ERANGE)
+             {
+              rc = -13 ;
+             }
+           else
+           if (endptr == valueText)
+             {
+              rc = -13 ;
+             }
+           else
+           if (*endptr != 0)
+             {
+              rc = -13 ;
+             }
+           else
+             {
+              int64Value  = (MQINT64)parsedValue ;
+              valueLength = sizeof(int64Value) ;
+              value       = (MQPTR)&int64Value ;
+             }
+          }
+       }
+   }
+//
+// Do the MQSETMP
+//
+ if (rc == 0)
+   {
+    TRACE(traceid, ("Calling MQSETMP\n") ) ;
+    MQSETMP ( anchor->QMh,
+              hmsg,
+              &smpo,
+              &name,
+              &pd,
+              type,
+              valueLength,
+              value,
+              &mqrc,
+              &mqac ) ;
+    rc = mqac ;
+   }
+//
+// If it worked, return updated structures
+//
+ if (rc == 0)
+   {
+    make_stem_from_smpo(traceid, &smpo, RX_smpo) ;
+    make_stem_from_pd  (traceid, &pd,   RX_pd)   ;
+   }
+//
+// Set the LAST variables, and the function return string
+//
+ set_return(rc,mqrc,mqac,afuncname,ReturnMsg,aretstr,traceid,"") ;
+return 0;
+} // End of RXMQSMP function
+//
+//
+// Inquire a message property     MQINQMP
+//
+//   Call:   rc = RXMQimp(handle, impo, name, pd, type, value)
+//
+//           handle : Rexx variable containing MQHMSG, e.g. 'mh1'
+//           impo   : MQIMPO input/output stem, e.g. 'impo1.'
+//           name   : property name, e.g. 'usr.test'
+//           pd     : MQPD output stem, e.g. 'pd1.'
+//           type   : Rexx variable receiving MQTYPE_*, e.g. 'ptype'
+//           value  : Rexx variable receiving property value, e.g. 'pvalue'
+//
+//   This is a temporary integration stub.
+//   It proves that RXMQIMP / CPPMIMP is correctly exported.
+//
+//
+// Inquire a message property     MQINQMP
+//
+//   Call:   rc = RXMQimp(handle, impo, name, pd, type, value)
+//
+//           handle : Rexx variable containing MQHMSG, e.g. 'mh1'
+//           impo   : MQIMPO input/output stem, e.g. 'impo1.'
+//           name   : property name, e.g. 'usr.test'
+//           pd     : MQPD output stem, e.g. 'pd1.'
+//           type   : Rexx variable receiving MQTYPE_*, e.g. 'ptype'
+//           value  : Rexx variable receiving property value, e.g. 'pvalue'
+//
+FTYPE  RXMQIMP  RXMQPARM
+{
+ RXMQCB                * anchor = 0       ;  // RXMQ Control Block
+ MQLONG                  rc = 0           ;  // Function Return Code
+ MQLONG                  mqrc = 0         ;  // MQ RC
+ MQLONG                  mqac = 0         ;  // MQ AC
+ MQULONG                 traceid = IMP    ;  // This function trace id
+ RXSTRING                RX_handle        ;  // Rexx variable containing HMSG
+ RXSTRING                RX_impo          ;  // MQIMPO input/output stem
+ RXSTRING                RX_name          ;  // Property name
+ RXSTRING                RX_pd            ;  // MQPD output stem
+ RXSTRING                RX_type          ;  // Rexx variable receiving type
+ RXSTRING                RX_value         ;  // Rexx value stem: .0 length, .1 data
+ RXSTRING                RX_nameout       ;  // Rexx variable receiving returned property name
+ MQHMSG                  hmsg = MQHM_NONE ;  // Message handle
+ MQINT64                 hmsg64 = 0       ;  // Intermediate handle value
+ MQIMPO                  impo             ;  // Inquire message property options
+ MQPD                    pd               ;  // Property descriptor
+ MQLONG                  type = MQTYPE_AS_SET ;
+ MQCHARV                 name             ;  // Property name
+ MQCHAR                * returnedNameBuffer = NULL ; // Returned property name buffer
+ MQLONG                  returnedNameLength = 1024 ; // Returned property name buffer length
+ MQLONG                  valueLength = 0  ;  // Input buffer length from value.0
+ MQLONG                  dataLength = 0   ;  // Actual property length returned by MQ
+ MQLONG                  returnedValueLength = 0 ; // Bytes copied to value.1
+ MQBYTE                * value = NULL     ;
+ char                    valueText[100]        ;
+ MQLONG                  int32Value = 0        ;
+ MQINT64                 int64Value = 0       ;
+ MQLONG                  booleanValue = 0      ;
+ MQFLOAT64               float64Value = 0      ;
+ MQFLOAT32               float32Value = 0 ;
+ MQLONG                  valueTextLength = 0   ;
+ RETMSG ReturnMsg[] = {
+        {  -1, "Bad number of parameters"},
+        {  -2, "Null handle name"},
+        {  -3, "Zero length handle name"},
+        {  -4, "Null IMPO"},
+        {  -5, "Zero length IMPO"},
+        {  -6, "Null property name"},
+        {  -7, "Zero length property name"},
+        {  -8, "Null PD"},
+        {  -9, "Zero length PD"},
+        { -10, "Null type variable"},
+        { -11, "Zero length type variable"},
+        { -12, "Null value stem"},
+        { -13, "Zero length value stem"},
+        { -14, "Null returned property name variable"},
+        { -15, "Zero length returned property name variable"},
+        { -16, "Invalid value buffer length in value.0"},
+        { -17, "Value buffer allocation failed"},
+        { -18, "Returned property name buffer allocation failed"},
+        { -99, "UNKNOWN FAILURE"}} ;
+rc = set_envir (afuncname, &traceid, &anchor) ;
+//
+// Check the parms
+//
+if ( (rc == 0) && (aargc != 7) ) rc = -100 - aargc ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[0]) )   rc = -2 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[0]) ) rc = -3 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[1]) )   rc = -4 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[1]) ) rc = -5 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[2]) )   rc = -6 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[2]) )
+   {
+    RXSTRING RX_impo_check ;
+    MQIMPO   impo_check ;
+    memcpy(&RX_impo_check, &aargv[1], sizeof(RX_impo_check)) ;
+    memcpy(&impo_check, &impo_default, sizeof(MQIMPO)) ;
+    make_impo_from_stem(traceid, &impo_check, RX_impo_check) ;
+    if ( (impo_check.Options != MQIMPO_INQ_FIRST) &&
+         ((impo_check.Options & MQIMPO_INQ_NEXT) == 0) )
+      rc = -7 ;
+   }
+ if ( (rc == 0) && RXNULLSTRING(aargv[3]) )    rc = -8 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[3]) ) rc = -9 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[4]) )    rc = -10 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[4]) ) rc = -11 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[5]) )    rc = -12 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[5]) ) rc = -13 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[6]) )    rc = -14 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[6]) ) rc = -15 ;
+//
+// No connection: return a real MQRC so existing REXX rcmap logic works
+//
+ if ( (rc == 0) && ( anchor->QMh == 0 ) )
+   {
+    mqrc = MQCC_FAILED ;
+    mqac = MQRC_HCONN_ERROR ;
+    rc   = mqac ;
+   }
+//
+// Now the parms are correct, get them
+//
+ if (rc == 0)
+   {
+    memcpy(&RX_handle,  &aargv[0], sizeof(RX_handle))  ;
+    memcpy(&RX_impo,    &aargv[1], sizeof(RX_impo))    ;
+    memcpy(&RX_name,    &aargv[2], sizeof(RX_name))    ;
+    memcpy(&RX_pd,      &aargv[3], sizeof(RX_pd))      ;
+    memcpy(&RX_type,    &aargv[4], sizeof(RX_type))    ;
+    memcpy(&RX_value,   &aargv[5], sizeof(RX_value))   ;
+    memcpy(&RX_nameout, &aargv[6], sizeof(RX_nameout)) ;
+    stem_to_long(traceid, RX_value, "0", &valueLength) ;
+    if (valueLength <= 0)
+      rc = -16 ;
+    stem_from_long (traceid, NULL, RX_type,    "",  0) ;
+    stem_from_bytes(traceid, NULL, RX_value,   "1", (MQBYTE *)"", 0) ;
+    stem_from_string(traceid, NULL, RX_nameout, "", "", 0) ;
+    make_stem_from_pd(traceid, &pd_default, RX_pd) ;
+    stem_to_int64(traceid, RX_handle, "", &hmsg64) ;
+    hmsg = (MQHMSG)hmsg64 ;
+    memcpy(&impo, &impo_default, sizeof(MQIMPO)) ;
+    make_impo_from_stem(traceid, &impo, RX_impo) ;
+    if (rc == 0)
+      {
+       returnedNameBuffer = malloc(returnedNameLength + 1) ;
+       if (returnedNameBuffer == NULL)
+         rc = -18 ;
+       else
+         {
+          memset(returnedNameBuffer, 0, returnedNameLength + 1) ;
+          impo.ReturnedName.VSPtr     = returnedNameBuffer ;
+          impo.ReturnedName.VSLength  = 0 ;
+          impo.ReturnedName.VSCCSID   = MQCCSI_APPL ;
+          impo.ReturnedName.VSBufSize = returnedNameLength ;
+         }
+      }
+    memcpy(&pd, &pd_default, sizeof(MQPD)) ;
+    memset(&name, 0, sizeof(MQCHARV)) ;
+    if (RX_name.strlength > 0)
+      {
+       name.VSPtr     = RX_name.strptr ;
+       name.VSLength  = RX_name.strlength ;
+       name.VSCCSID   = MQCCSI_APPL ;
+       name.VSBufSize = RX_name.strlength ;
+      }
+    else
+      {
+       name.VSPtr     = NULL ;
+       name.VSLength  = 0 ;
+       name.VSCCSID   = MQCCSI_APPL ;
+       name.VSBufSize = 0 ;
+      }
+    if (rc == 0)
+      {
+       value = malloc(valueLength) ;
+       if (value == NULL)
+         rc = -17 ;
+       else
+         memset(value, 0, valueLength) ;
+      }
+   }
+//
+// Do the MQINQMP
+//
+ if (rc == 0)
+   {
+    TRACE(traceid, ("Calling MQINQMP\n") ) ;
+    MQINQMP ( anchor->QMh,
+              hmsg,
+              &impo,
+              &name,
+              &pd,
+              &type,
+              valueLength,
+              value,
+              &dataLength,
+              &mqrc,
+              &mqac ) ;
+    rc = mqac ;
+    make_stem_from_impo(traceid, &impo, RX_impo) ;
+    make_stem_from_pd  (traceid, &pd,   RX_pd)   ;
+    stem_from_long(traceid, NULL, RX_type,  "", type) ;
+    stem_from_long(traceid, NULL, RX_value, "0", dataLength) ;
+    stem_from_string(traceid, NULL, RX_nameout, "",
+                     (MQCHAR *)impo.ReturnedName.VSPtr,
+                     impo.ReturnedName.VSLength) ;
+     returnedValueLength = dataLength ;
+     if (returnedValueLength > valueLength)
+       returnedValueLength = valueLength ;
+     if (returnedValueLength < 0)
+       returnedValueLength = 0 ;
+     memset(valueText, 0, sizeof(valueText)) ;
+     if (type == MQTYPE_INT32)
+       {
+        if (returnedValueLength == sizeof(int32Value))
+          {
+           memcpy(&int32Value,
+                  value,
+                  sizeof(int32Value)) ;
+           sprintf(valueText,
+                   "%"PRId32,
+                   (int32_t)int32Value) ;
+           valueTextLength = strlen(valueText) ;
+           stem_from_string(traceid,
+                            NULL,
+                            RX_value,
+                            "1",
+                            valueText,
+                            valueTextLength) ;
+          }
+        else
+          {
+           stem_from_bytes(traceid,
+                           NULL,
+                           RX_value,
+                           "1",
+                           value,
+                           returnedValueLength) ;
+          }
+       }
+     else
+     if (type == MQTYPE_INT64)
+       {
+        if (returnedValueLength == sizeof(int64Value))
+          {
+           memcpy(&int64Value,
+                  value,
+                  sizeof(int64Value)) ;
+           sprintf(valueText,
+                   "%"PRId64,
+                   (int64_t)int64Value) ;
+           valueTextLength = strlen(valueText) ;
+           stem_from_string(traceid,
+                            NULL,
+                            RX_value,
+                            "1",
+                            valueText,
+                            valueTextLength) ;
+          }
+        else
+          {
+           stem_from_bytes(traceid,
+                           NULL,
+                           RX_value,
+                           "1",
+                           value,
+                           returnedValueLength) ;
+          }
+       }
+     else
+     if (type == MQTYPE_BOOLEAN)
+       {
+        if (returnedValueLength == sizeof(booleanValue))
+          {
+           memcpy(&booleanValue,
+                  value,
+                  sizeof(booleanValue)) ;
+           if (booleanValue == 0)
+             sprintf(valueText, "0") ;
+           else
+             sprintf(valueText, "1") ;
+           valueTextLength = strlen(valueText) ;
+           stem_from_string(traceid,
+                            NULL,
+                            RX_value,
+                            "1",
+                            valueText,
+                            valueTextLength) ;
+          }
+        else
+          {
+           stem_from_bytes(traceid,
+                           NULL,
+                           RX_value,
+                           "1",
+                           value,
+                           returnedValueLength) ;
+          }
+       }
+     else
+     if (type == MQTYPE_FLOAT32)
+       {
+        if (returnedValueLength == sizeof(float32Value))
+          {
+           memcpy(&float32Value,
+                  value,
+                  sizeof(float32Value)) ;
+           sprintf(valueText,
+                   "%.7g",
+                   (double)float32Value) ;
+           valueTextLength = strlen(valueText) ;
+           stem_from_string(traceid,
+                            NULL,
+                            RX_value,
+                            "1",
+                            valueText,
+                            valueTextLength) ;
+          }
+        else
+          {
+           stem_from_bytes(traceid,
+                           NULL,
+                           RX_value,
+                           "1",
+                           value,
+                           returnedValueLength) ;
+          }
+       }
+     else
+     if (type == MQTYPE_FLOAT64)
+       {
+        if (returnedValueLength == sizeof(float64Value))
+          {
+           memcpy(&float64Value,
+                  value,
+                  sizeof(float64Value)) ;
+           sprintf(valueText,
+                   "%.15g",
+                   float64Value) ;
+           valueTextLength = strlen(valueText) ;
+           stem_from_string(traceid,
+                            NULL,
+                            RX_value,
+                            "1",
+                            valueText,
+                            valueTextLength) ;
+          }
+        else
+          {
+           stem_from_bytes(traceid,
+                           NULL,
+                           RX_value,
+                           "1",
+                           value,
+                           returnedValueLength) ;
+          }
+       }
+     else
+       {
+        stem_from_bytes(traceid,
+                        NULL,
+                        RX_value,
+                        "1",
+                        value,
+                        returnedValueLength) ;
+       }
+   }
+//
+// Free output buffers
+//
+ if (returnedNameBuffer)
+   {
+    free(returnedNameBuffer) ;
+    returnedNameBuffer = NULL ;
+   }
+ if (value)
+   {
+    free(value) ;
+    value = NULL ;
+   }
+ set_return(rc,mqrc,mqac,afuncname,ReturnMsg,aretstr,traceid,"") ;
+return 0;
+} // End of RXMQIMP function
+//
+//
+// Delete a message property     MQDLTMP
+//
+//   Call:   rc = RXMQdmp(handle, dmpo, name)
+//
+//           handle : Rexx variable containing MQHMSG, e.g. 'mh1'
+//           dmpo   : MQDMPO input/output stem, e.g. 'dmpo1.'
+//           name   : property name, e.g. 'usr.test'
+//
+FTYPE  RXMQDMP  RXMQPARM
+{
+ RXMQCB                * anchor = 0       ;  // RXMQ Control Block
+ MQLONG                  rc = 0           ;  // Function Return Code
+ MQLONG                  mqrc = 0         ;  // MQ RC
+ MQLONG                  mqac = 0         ;  // MQ AC
+ MQULONG                 traceid = DMP    ;  // This function trace id
+ RXSTRING                RX_handle        ;  // Rexx variable containing HMSG
+ RXSTRING                RX_dmpo          ;  // MQDMPO input/output stem
+ RXSTRING                RX_name          ;  // Property name
+ MQHMSG                  hmsg = MQHM_NONE ;  // Message handle
+ MQINT64                 hmsg64 = 0       ;  // Intermediate handle value
+ MQDMPO                  dmpo             ;  // Delete message property options
+ MQCHARV                 name             ;  // Property name
+ RETMSG ReturnMsg[] = {
+        {  -1, "Bad number of parameters"},
+        {  -2, "Null handle name"},
+        {  -3, "Zero length handle name"},
+        {  -4, "Null DMPO"},
+        {  -5, "Zero length DMPO"},
+        {  -6, "Null property name"},
+        {  -7, "Zero length property name"},
+        { -99, "UNKNOWN FAILURE"}} ;
+ rc = set_envir (afuncname, &traceid, &anchor) ;
+//
+// Check the parms
+//
+ if ( (rc == 0) && ( aargc != 3 ) )              rc = -1 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[0]) )      rc = -2 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[0]) )   rc = -3 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[1]) )      rc = -4 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[1]) )   rc = -5 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[2]) )      rc = -6 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[2]) )   rc = -7 ;
+//
+// No connection: return a real MQRC so existing REXX rcmap logic works
+//
+ if ( (rc == 0) && ( anchor->QMh == 0 ) )
+   {
+    mqrc = MQCC_FAILED ;
+    mqac = MQRC_HCONN_ERROR ;
+    rc   = mqac ;
+   }
+//
+// Now the parms are correct, get them
+//
+ if (rc == 0)
+   {
+    memcpy(&RX_handle, &aargv[0], sizeof(RX_handle)) ;
+    memcpy(&RX_dmpo,   &aargv[1], sizeof(RX_dmpo))   ;
+    memcpy(&RX_name,   &aargv[2], sizeof(RX_name))   ;
+    TRACE(traceid, ("RX_handle = %.*s\n",
+          (int)RX_handle.strlength, RX_handle.strptr) ) ;
+    TRACE(traceid, ("RX_dmpo = %.*s\n",
+          (int)RX_dmpo.strlength, RX_dmpo.strptr) ) ;
+    TRACE(traceid, ("RX_name = %.*s\n",
+          (int)RX_name.strlength, RX_name.strptr) ) ;
+    stem_to_int64(traceid, RX_handle, "", &hmsg64) ;
+    hmsg = (MQHMSG)hmsg64 ;
+    memcpy(&dmpo, &dmpo_default, sizeof(MQDMPO)) ;
+    make_dmpo_from_stem(traceid, &dmpo, RX_dmpo) ;
+    make_stem_from_dmpo(traceid, &dmpo, RX_dmpo) ;
+    memset(&name, 0, sizeof(MQCHARV)) ;
+    name.VSPtr     = RX_name.strptr ;
+    name.VSLength  = RX_name.strlength ;
+    name.VSCCSID   = MQCCSI_APPL ;
+    name.VSBufSize = RX_name.strlength ;
+   }
+//
+// Do the MQDLTMP
+//
+ if (rc == 0)
+   {
+    TRACE(traceid, ("Calling MQDLTMP\n") ) ;
+    MQDLTMP ( anchor->QMh,
+              hmsg,
+              &dmpo,
+              &name,
+              &mqrc,
+              &mqac ) ;
+    rc = mqac ;
+   }
+//
+// Always return a clean DMPO stem once it is known
+//
+ if (rc == 0)
+   {
+    make_stem_from_dmpo(traceid, &dmpo, RX_dmpo) ;
+   }
+//
+// Set the LAST variables, and the function return string
+//
+ set_return(rc,mqrc,mqac,afuncname,ReturnMsg,aretstr,traceid,"") ;
+return 0;
+} // End of RXMQDMP function
+//
+//
+//
+//
+//
+// Buffer to message handle     MQBUFMH
+//
+//   Call:   rc = RXMQbmh(handle, bmho, md, buffer)
+//
+//           handle : Rexx variable containing MQHMSG, e.g. 'mh1'
+//           bmho   : MQBMHO input/output stem, e.g. 'bmho1.'
+//           md     : MQMD input/output stem, e.g. 'md1.'
+//           buffer : Rexx variable containing message buffer
+//
+FTYPE  RXMQBMH  RXMQPARM
+{
+ RXMQCB                * anchor = 0       ;  // RXMQ Control Block
+ MQLONG                  rc = 0           ;  // Function Return Code
+ MQLONG                  mqrc = 0         ;  // MQ RC
+ MQLONG                  mqac = 0         ;  // MQ AC
+ MQULONG                 traceid = BMH    ;  // This function trace id
+ RXSTRING                RX_handle        ;  // Rexx variable containing HMSG
+ RXSTRING                RX_bmho          ;  // MQBMHO input/output stem
+ RXSTRING                RX_md            ;  // MQMD input/output stem
+ RXSTRING                RX_buffer        ;  // Rexx variable containing input buffer
+ MQHMSG                  hmsg = MQHM_NONE ;  // Message handle
+ MQINT64                 hmsg64 = 0       ;  // Intermediate handle value
+ MQBMHO                  bmho             ;  // Buffer to message handle options
+ MQMD2                   md               ;  // Message descriptor
+ MQLONG                  dataLength = 0   ;  // Data length returned by MQBUFMH
+ RETMSG ReturnMsg[] = {
+        {  -1, "Bad number of parameters"},
+        {  -2, "Null handle name"},
+        {  -3, "Zero length handle name"},
+        {  -4, "Null BMHO"},
+        {  -5, "Zero length BMHO"},
+        {  -6, "Null MD"},
+        {  -7, "Zero length MD"},
+        {  -8, "Null input buffer"},
+        {  -9, "Zero length input buffer"},
+        { -99, "UNKNOWN FAILURE"}} ;
+ rc = set_envir (afuncname, &traceid, &anchor) ;
+//
+// Check the parms
+//
+ if ( (rc == 0) && (aargc != 4) ) rc = -1 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[0]) )  rc = -2 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[0]) )rc = -3 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[1]) )  rc = -4 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[1]) )rc = -5 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[2]) )  rc = -6 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[2]) )rc = -7 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[3]) )  rc = -8 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[3]) )rc = -9 ;
+//
+// No connection: return a real MQRC so existing REXX rcmap logic works
+//
+ if ( (rc == 0) && ( anchor->QMh == 0 ) )
+   {
+    mqrc = MQCC_FAILED ;
+    mqac = MQRC_HCONN_ERROR ;
+    rc   = mqac ;
+   }
+//
+// Now the parms are correct, get them
+//
+ if (rc == 0)
+   {
+    memcpy(&RX_handle, &aargv[0], sizeof(RX_handle)) ;
+    memcpy(&RX_bmho,   &aargv[1], sizeof(RX_bmho))  ;
+    memcpy(&RX_md,     &aargv[2], sizeof(RX_md))    ;
+    memcpy(&RX_buffer, &aargv[3], sizeof(RX_buffer)) ;
+    TRACE(traceid, ("RX_handle = %.*s\n",
+          (int)RX_handle.strlength, RX_handle.strptr) ) ;
+    TRACE(traceid, ("RX_bmho = %.*s\n",
+          (int)RX_bmho.strlength, RX_bmho.strptr) ) ;
+    TRACE(traceid, ("RX_md = %.*s\n",
+          (int)RX_md.strlength, RX_md.strptr) ) ;
+    TRACE(traceid, ("RX_buffer length = %"PRIu32"\n",
+          (uint32_t)RX_buffer.strlength) ) ;
+    stem_to_int64(traceid, RX_handle, "", &hmsg64) ;
+    hmsg = (MQHMSG)hmsg64 ;
+    memcpy(&bmho, &bmho_default, sizeof(MQBMHO)) ;
+    make_bmho_from_stem(traceid, &bmho, RX_bmho) ;
+    memcpy(&md, &md_default, sizeof(MQMD2)) ;
+    make_md_from_stem(traceid, &md, RX_md) ;
+   }
+//
+// Do the MQBUFMH
+//
+ if (rc == 0)
+   {
+    TRACE(traceid, ("Calling MQBUFMH\n") ) ;
+    MQBUFMH ( anchor->QMh,
+              hmsg,
+              &bmho,
+              &md,
+              RX_buffer.strlength,
+              (MQBYTE *)RX_buffer.strptr,
+              &dataLength,
+              &mqrc,
+              &mqac ) ;
+    rc = mqac ;
+    TRACE(traceid, ("MQBUFMH returned mqrc=%"PRId32" mqac=%"PRId32" dataLength=%"PRId32" bufferLength=%"PRIu32"\n",
+          mqrc, mqac, dataLength, (uint32_t)RX_buffer.strlength) ) ;
+   }
+//
+// Return updated structures
+//
+ if (rc == 0)
+   {
+    make_stem_from_bmho(traceid, &bmho, RX_bmho) ;
+    make_stem_from_md  (traceid, &md,   RX_md)   ;
+   }
+//
+// Set the LAST variables, and the function return string
+//
+ set_return(rc,mqrc,mqac,afuncname,ReturnMsg,aretstr,traceid,"") ;
+return 0;
+} // End of RXMQBMH function
+//
+//
+//
+//
+// Message handle to buffer     MQMHBUF
+//
+//   Temporary integration stub
+//
+//
+//
+// Message handle to buffer     MQMHBUF
+//
+//   Call:   rc = RXMQmbf(handle, mhbo, name, md, buffer, buflen, datalen)
+//
+//           handle  : Rexx variable containing MQHMSG, e.g. 'mh1'
+//           mhbo    : MQMHBO input/output stem, e.g. 'mhbo1.'
+//           name    : property name filter, e.g. 'usr.%'
+//           md      : MQMD input/output stem, e.g. 'md1.'
+//           buffer  : Rexx variable receiving message buffer
+//           buflen  : buffer length
+//           datalen : Rexx variable receiving DataLength
+//
+FTYPE  RXMQMBF  RXMQPARM
+{
+ RXMQCB                * anchor = 0       ;
+ MQLONG                  rc = 0           ;
+ MQLONG                  mqrc = 0         ;
+ MQLONG                  mqac = 0         ;
+ MQULONG                 traceid = MBF    ;
+ RXSTRING                RX_handle        ;
+ RXSTRING                RX_mhbo          ;
+ RXSTRING                RX_name          ;
+ RXSTRING                RX_md            ;
+ RXSTRING                RX_buffer        ;
+ RXSTRING                RX_buflen        ;
+ RXSTRING                RX_datalen       ;
+ MQHMSG                  hmsg = MQHM_NONE ;
+ MQINT64                 hmsg64 = 0       ;
+ MQMHBO                  mhbo             ;
+ MQMD2                   md               ;
+ MQCHARV                 name             ;
+ MQLONG                  bufferLength = 4096 ;
+ MQLONG                  dataLength = 0   ;
+ MQBYTE                * buffer = NULL    ;
+ RETMSG ReturnMsg[] = {
+        {  -1, "Bad number of parameters"},
+        {  -2, "Null handle name"},
+        {  -3, "Zero length handle name"},
+        {  -4, "Null MHBO"},
+        {  -5, "Zero length MHBO"},
+        {  -6, "Null name"},
+        {  -7, "Zero length name"},
+        {  -8, "Null MD"},
+        {  -9, "Zero length MD"},
+        { -10, "Null output buffer variable"},
+        { -11, "Zero length output buffer variable"},
+        { -12, "Null buffer length"},
+        { -13, "Zero length buffer length"},
+        { -14, "Null data length variable"},
+        { -15, "Zero length data length variable"},
+        { -16, "Buffer length must be greater than zero"},
+        { -17, "Unable to allocate output buffer"},
+        { -99, "UNKNOWN FAILURE"}} ;
+ rc = set_envir (afuncname, &traceid, &anchor) ;
+ if ( (rc == 0) && (aargc != 7) )             rc = -1 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[0]) )  rc = -2 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[0]) )rc = -3 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[1]) )  rc = -4 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[1]) )rc = -5 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[2]) )  rc = -6 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[2]) )rc = -7 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[3]) )  rc = -8 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[3]) )rc = -9 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[4]) )  rc = -10 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[4]) )rc = -11 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[5]) )  rc = -12 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[5]) )rc = -13 ;
+ if ( (rc == 0) && RXNULLSTRING(aargv[6]) )  rc = -14 ;
+ if ( (rc == 0) && RXZEROLENSTRING(aargv[6]) )rc = -15 ;
+ if ( (rc == 0) && ( anchor->QMh == 0 ) )
+   {
+    mqrc = MQCC_FAILED ;
+    mqac = MQRC_HCONN_ERROR ;
+    rc   = mqac ;
+   }
+ if (rc == 0)
+   {
+    memcpy(&RX_handle,  &aargv[0], sizeof(RX_handle)) ;
+    memcpy(&RX_mhbo,    &aargv[1], sizeof(RX_mhbo))   ;
+    memcpy(&RX_name,    &aargv[2], sizeof(RX_name))   ;
+    memcpy(&RX_md,      &aargv[3], sizeof(RX_md))     ;
+    memcpy(&RX_buffer,  &aargv[4], sizeof(RX_buffer)) ;
+    memcpy(&RX_buflen,  &aargv[5], sizeof(RX_buflen)) ;
+    memcpy(&RX_datalen, &aargv[6], sizeof(RX_datalen)) ;
+    TRACE(traceid, ("RX_handle = %.*s\n",
+          (int)RX_handle.strlength, RX_handle.strptr) ) ;
+    TRACE(traceid, ("RX_mhbo = %.*s\n",
+          (int)RX_mhbo.strlength, RX_mhbo.strptr) ) ;
+    TRACE(traceid, ("RX_name = %.*s\n",
+          (int)RX_name.strlength, RX_name.strptr) ) ;
+    TRACE(traceid, ("RX_md = %.*s\n",
+          (int)RX_md.strlength, RX_md.strptr) ) ;
+    TRACE(traceid, ("RX_buffer = %.*s\n",
+          (int)RX_buffer.strlength, RX_buffer.strptr) ) ;
+    TRACE(traceid, ("RX_buflen = %.*s\n",
+          (int)RX_buflen.strlength, RX_buflen.strptr) ) ;
+    TRACE(traceid, ("RX_datalen = %.*s\n",
+          (int)RX_datalen.strlength, RX_datalen.strptr) ) ;
+    stem_from_bytes(traceid, NULL, RX_buffer, "", (MQBYTE *)"", 0) ;
+    stem_from_long (traceid, NULL, RX_datalen, "", 0) ;
+    parm_to_ulong(RX_buflen, &bufferLength) ;
+    if (bufferLength <= 0)
+      rc = -16 ;
+    stem_to_int64(traceid, RX_handle, "", &hmsg64) ;
+    hmsg = (MQHMSG)hmsg64 ;
+    memcpy(&mhbo, &mhbo_default, sizeof(MQMHBO)) ;
+    make_mhbo_from_stem(traceid, &mhbo, RX_mhbo) ;
+    memcpy(&md, &md_default, sizeof(MQMD2)) ;
+    make_md_from_stem(traceid, &md, RX_md) ;
+    memset(&name, 0, sizeof(MQCHARV)) ;
+    name.VSPtr     = RX_name.strptr ;
+    name.VSLength  = RX_name.strlength ;
+    name.VSCCSID   = MQCCSI_APPL ;
+    name.VSBufSize = RX_name.strlength ;
+    if (rc == 0)
+      {
+       buffer = malloc(bufferLength) ;
+       if (buffer == NULL)
+         rc = -17 ;
+       else
+         memset(buffer, 0, bufferLength) ;
+      }
+   }
+ if (rc == 0)
+   {
+    TRACE(traceid, ("Calling MQMHBUF\n") ) ;
+    MQMHBUF ( anchor->QMh,
+              hmsg,
+              &mhbo,
+              &name,
+              &md,
+              bufferLength,
+              buffer,
+              &dataLength,
+              &mqrc,
+              &mqac ) ;
+    rc = mqac ;
+    TRACE(traceid, ("MQMHBUF returned mqrc=%"PRId32" mqac=%"PRId32" dataLength=%"PRId32" bufferLength=%"PRId32"\n",
+          mqrc, mqac, dataLength, bufferLength) ) ;
+   }
+ if (buffer)
+   {
+    make_stem_from_mhbo(traceid, &mhbo, RX_mhbo) ;
+    make_stem_from_md  (traceid, &md,   RX_md)   ;
+    if (rc == 0)
+      stem_from_bytes(traceid, NULL, RX_buffer, "", buffer, dataLength) ;
+    else
+      stem_from_bytes(traceid, NULL, RX_buffer, "", (MQBYTE *)"", 0) ;
+    stem_from_long(traceid, NULL, RX_datalen, "", dataLength) ;
+   }
+ if (buffer)
+   {
+    free(buffer) ;
+    buffer = NULL ;
+   }
+ set_return(rc,mqrc,mqac,afuncname,ReturnMsg,aretstr,traceid,"") ;
+ return 0;
+} // End of RXMQMBF function
 //
 // Do an Open   MQOPEN
 //
@@ -2850,7 +4777,7 @@ FTYPE  RXMQOPEN  RXMQPARM
  int                     theobj     = -1  ;  //gmqo object to use
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null Input OD/Qname"},
         {  -3, "Zero length input OD/Qname"},
         {  -4, "Null options"},
@@ -2962,7 +4889,7 @@ FTYPE  RXMQCLOS  RXMQPARM
  MQLONG                  handle   = 0     ;  //MQ object number
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null handle"},
         {  -3, "Zero length handle"},
         {  -4, "Null options"},
@@ -3002,7 +4929,7 @@ FTYPE  RXMQCLOS  RXMQPARM
 //
 // See if the handle is valid (ie: the gmqo to use)
 //
- if ( (rc == 0) && ( ( handle > MAXQS ) || ( handle <= 0 ) ) ) rc = -6 ;
+ if ( (rc == 0) && ( ( handle > MAXQS ) !! ( handle <= 0 ) ) ) rc = -6 ;
  if ( (rc == 0) && ( anchor->Qh[handle] == 0 ) )               rc = -7 ;
 
 //
@@ -3042,7 +4969,7 @@ FTYPE  RXMQCMIT  RXMQPARM
  MQULONG                 traceid = CMIT   ;  // This function trace id
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         { -98, "Not connected to a QM"},
         { -99, "UNKNOWN FAILURE"}} ;
 
@@ -3087,7 +5014,7 @@ FTYPE  RXMQBACK  RXMQPARM
  MQULONG                 traceid = BACK   ;  // This function trace id
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         { -98, "Not connected to a QM"},
         { -99, "UNKNOWN FAILURE"}} ;
 
@@ -3118,11 +5045,21 @@ FTYPE  RXMQBACK  RXMQPARM
  } // End of RXMQBACK function
 
 //
+//
+//
+//
+//
 // Do a Put     MQPUT
 //
 //   Call:   rc = RXMQput(handle, data,
 //                        input_msgdesc, output_msgdesc,
 //                        input_pmo, output_pmo)
+//
+//   MQ properties:
+//        input_pmo.NMH maps to MQPMO.NewMsgHandle.
+//        A message handle created by RXMQMH and populated by RXMQSMP
+//        can therefore be passed directly to MQPUT.
+//        RXMQMBF is not required for this standard IBM MQ scenario.
 //
 FTYPE  RXMQPUT  RXMQPARM
  {
@@ -3148,7 +5085,7 @@ FTYPE  RXMQPUT  RXMQPARM
  int                     datalen          ;  //   Data length
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null handle"},
         {  -3, "Zero data handle"},
         {  -4, "Null data stem var"},
@@ -3252,7 +5189,7 @@ FTYPE  RXMQPUT  RXMQPARM
 //
 // See if the output queue handle is valid
 //
- if ( (rc == 0) && ( ( handle > MAXQS ) || ( handle <= 0 ) ) )   rc = -14 ;
+ if ( (rc == 0) && ( ( handle > MAXQS ) !! ( handle <= 0 ) ) )   rc = -14 ;
  if ( (rc == 0) && ( anchor->Qh[handle] == 0 ) )                 rc = -15 ;
 
 
@@ -3262,7 +5199,7 @@ FTYPE  RXMQPUT  RXMQPARM
 //
  if ( (rc == 0) && ( pmo.Context != 0 ) )
    {
-    if ( ( pmo.Context > MAXQS ) || ( pmo.Context < 0 ) )  rc = -19 ;
+    if ( ( pmo.Context > MAXQS ) !! ( pmo.Context < 0 ) )  rc = -19 ;
     if ( (rc == 0) && (anchor->Qh[pmo.Context] == 0 ) )    rc = -20 ;
     if   (rc == 0) pmo.Context = anchor->Qh[pmo.Context];
     }
@@ -3273,6 +5210,7 @@ FTYPE  RXMQPUT  RXMQPARM
  if (rc == 0)
    {
     TRACE(traceid, ("PUT Maxdatalen = %"PRId32"\n",(int32_t)data0) )                ;
+    TRACE(traceid, ("PUT PMO.NewMsgHandle = %"PRIu64"\n",(uint64_t)pmo.NewMsgHandle) ) ;
     MQPUT ( anchor->QMh, anchor->Qh[handle], &od, &pmo, data0, data, &mqrc, &mqac ) ;
     rc = mqrc ;
     TRACE(traceid, ("PUT rc = %"PRId32", ac = %"PRId32"\n",(int32_t)mqrc, (int32_t)mqac) ) ;
@@ -3333,7 +5271,7 @@ FTYPE RXMQPUT1  RXMQPARM
  int                     datalen          ;  //   Data length
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null input OD/Qname"},
         {  -3, "Zero length input OD/Qname"},
         {  -4, "Null output OD"},
@@ -3443,7 +5381,7 @@ FTYPE RXMQPUT1  RXMQPARM
  //
   if ( (rc == 0) && ( pmo.Context != 0 ) )
     {
-     if ( ( pmo.Context > MAXQS ) || ( pmo.Context < 0 ) ) rc = -20 ;
+     if ( ( pmo.Context > MAXQS ) !! ( pmo.Context < 0 ) ) rc = -20 ;
      if ( (rc == 0) & (anchor->Qh[pmo.Context] == 0 ) )    rc = -21 ;
      if (rc == 0) pmo.Context = anchor->Qh[pmo.Context]             ;
     }
@@ -3489,6 +5427,12 @@ return 0;
 //                        input_msgdesc,output_msgdesc,
 //                        input_gmo,output_gmo)
 //
+//   MQ properties:
+//        input_gmo.MH maps to MQGMO.MsgHandle.
+//        A message handle created by RXMQMH can therefore receive
+//        properties directly from MQGET and be read by RXMQIMP.
+//        RXMQBMH is not required for this standard IBM MQ scenario.
+//
 FTYPE  RXMQGET  RXMQPARM
  {
 
@@ -3513,7 +5457,7 @@ FTYPE  RXMQGET  RXMQPARM
  MQLONG                  datalen   = 0    ;  //   Data length actual
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null handle"},
         {  -3, "Zero data handle"},
         {  -4, "Null data stem var"},
@@ -3590,7 +5534,7 @@ FTYPE  RXMQGET  RXMQPARM
 //
 // See if the handle is valid
 //
- if ( (rc == 0) && ( ( handle > MAXQS ) || ( handle <= 0 ) ) ) rc = -14 ;
+ if ( (rc == 0) && ( ( handle > MAXQS ) !! ( handle <= 0 ) ) ) rc = -14 ;
  if ( (rc == 0) && ( anchor->Qh[handle] == 0 ) )               rc = -15 ;
 
 //
@@ -3614,6 +5558,7 @@ FTYPE  RXMQGET  RXMQPARM
  if (rc == 0)
    {
     TRACE(traceid, ("GET Maxdatalen = %"PRId32"\n",(int32_t)data0) )                          ;
+    TRACE(traceid, ("GET GMO.MsgHandle = %"PRIu64"\n",(uint64_t)gmo.MsgHandle) )              ;
     MQGET ( anchor->QMh, anchor->Qh[handle], &md, &gmo, data0, data, &datalen, &mqrc, &mqac ) ;
     rc = mqrc                                                                                 ;
     TRACE(traceid, ("GET rc = %"PRId32", ac = %"PRId32", datalen = %"PRId32"\n",
@@ -3675,7 +5620,7 @@ FTYPE  RXMQINQ  RXMQPARM
  char             inqchars[601]        ;  //INQ - char return
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null handle"},
         {  -3, "Zero data handle"},
         {  -4, "Null data input attr"},
@@ -3722,12 +5667,12 @@ FTYPE  RXMQINQ  RXMQPARM
     if (attrib == 0) rc = -8          ;
 
     if ( !( ( (attrib >= MQIA_FIRST) && (attrib <= MQIA_LAST  ) )
-         || ( (attrib >= MQCA_FIRST) && (attrib <= MQCA_LAST  ) ) ) ) rc = -9;
+         !! ( (attrib >= MQCA_FIRST) && (attrib <= MQCA_LAST  ) ) ) ) rc = -9;
    }
 //
 // See if the handle is valid
 //
- if ( (rc == 0) && ( ( handle > MAXQS ) || ( handle <= 0 ) ) ) rc = -10 ;
+ if ( (rc == 0) && ( ( handle > MAXQS ) !! ( handle <= 0 ) ) ) rc = -10 ;
  if ( (rc == 0) && ( anchor->Qh[handle] == 0 ) )               rc = -11 ;
 
 //
@@ -3803,7 +5748,7 @@ FTYPE  RXMQSET  RXMQPARM
  char             setchars[601]        ;  //SET - char return
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null handle"},
         {  -3, "Zero data handle"},
         {  -4, "Null data attribute"},
@@ -3851,13 +5796,13 @@ FTYPE  RXMQSET  RXMQPARM
     if (attrib == 0) rc = -8 ;
 
     if ( !( ( (attrib >= MQIA_FIRST) && (attrib <= MQIA_LAST  ) )
-         || ( (attrib >= MQCA_FIRST) && (attrib <= MQCA_LAST  ) ) ) ) rc = -9;
+         !! ( (attrib >= MQCA_FIRST) && (attrib <= MQCA_LAST  ) ) ) ) rc = -9;
    }
 
 //
 // See if the handle is valid (ie: the gmqo to use)
 //
- if ( (rc == 0) && ( ( handle > MAXQS ) || ( handle <= 0 ) ) ) rc = -10 ;
+ if ( (rc == 0) && ( ( handle > MAXQS ) !! ( handle <= 0 ) ) ) rc = -10 ;
  if ( (rc == 0) && ( anchor->Qh[handle] == 0 ) )               rc = -11 ;
 
 //
@@ -3910,6 +5855,11 @@ return 0;
 //
 //   Call:   rc = RXMQsub(isdesc,handle,osdesc)
 //
+//
+//           Optional:
+//                   rc = RXMQsub(isdesc,handle,osdesc,subhandle)
+//
+//
 FTYPE  RXMQSUB  RXMQPARM
  {
 
@@ -3923,13 +5873,15 @@ FTYPE  RXMQSUB  RXMQPARM
  RXSTRING                RX_handle        ;  //      Var Obj Handle
  RXSTRING                RXi_sd           ;  // Stem Var Sub Desc Input
  RXSTRING                RXo_sd           ;  // Stem Var Sub Desc Output
+ RXSTRING                RX_subhandle     ;  // Optional Var Sub Handle
 
  MQSD                    sd               ;  // MQ subscription desc
  int                     theobj     = -1  ;  // gmqo object to use
- MQHOBJ                  sh               ;  // Subscription handle
+ int                     thesub     = -1  ;  // subscription object to use
+ MQHOBJ                  sh         = 0   ;  // Subscription handle
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null input SD"},
         {  -3, "Zero length input SD"},
         {  -6, "Null handle name"},
@@ -3945,13 +5897,15 @@ FTYPE  RXMQSUB  RXMQPARM
 //
 // Check the parms
 //
- if ( (rc == 0) && (aargc != 3 ) )             rc =  -1 ;
+  if ( (rc == 0) && ( (aargc < 3) !! (aargc > 4) ) ) rc =  -1 ;
  if ( (rc == 0) && RXNULLSTRING(aargv[0]) )    rc =  -2 ;
  if ( (rc == 0) && RXZEROLENSTRING(aargv[0]) ) rc =  -3 ;
  if ( (rc == 0) && RXNULLSTRING(aargv[1]) )    rc =  -6 ;
  if ( (rc == 0) && RXZEROLENSTRING(aargv[1]) ) rc =  -7 ;
  if ( (rc == 0) && RXNULLSTRING(aargv[2]) )    rc =  -8 ;
  if ( (rc == 0) && RXZEROLENSTRING(aargv[2]) ) rc =  -9 ;
+ if ( (rc == 0) && (aargc == 4) && RXNULLSTRING(aargv[3]) )    rc =  -6 ;
+ if ( (rc == 0) && (aargc == 4) && RXZEROLENSTRING(aargv[3]) ) rc =  -7 ;
  if ( (rc == 0) && ( anchor->QMh == 0 ) )      rc = -98 ;
 
 //
@@ -3962,10 +5916,15 @@ FTYPE  RXMQSUB  RXMQPARM
       memcpy(&RXi_sd ,   &aargv[0],sizeof(RXi_sd))    ;
       memcpy(&RX_handle ,&aargv[1],sizeof(RX_handle)) ;
       memcpy(&RXo_sd ,   &aargv[2],sizeof(RXo_sd))    ;
+       if (aargc == 4)
+         memcpy(&RX_subhandle,&aargv[3],sizeof(RX_subhandle)) ;
 
       TRACE(traceid, ("RXi_sd = %.*s\n",   (int)RXi_sd.strlength,   RXi_sd.strptr)    )  ;
       TRACE(traceid, ("RX_handle = %.*s\n",(int)RX_handle.strlength,RX_handle.strptr) )  ;
       TRACE(traceid, ("RXo_sd = %.*s\n",   (int)RXo_sd.strlength,   RXo_sd.strptr)    )  ;
+      if (aargc == 4)
+        TRACE(traceid, ("RX_subhandle = %.*s\n",
+                        (int)RX_subhandle.strlength,RX_subhandle.strptr) ) ;
 
       make_sd_from_stem(traceid,&sd,RXi_sd)           ;
     }
@@ -3973,20 +5932,36 @@ FTYPE  RXMQSUB  RXMQPARM
 //
 // Select the handle
 //
+//
+// Select the handle
+//
  if (rc == 0)
    {
     for ( i=MINQS ; i <= MAXQS ; i++ )
       {
-       if ( anchor->Qh[i] == 0 )
+       if ( anchor->Qh[i]  == 0 )
          {
-          theobj = i ;
-          TRACE(traceid, ("Selected Object [%d]\n",theobj) ) ;
-          break      ;
+          if (theobj == -1)
+            {
+             theobj = i ;
+             TRACE(traceid, ("Selected Object %d]\n",theobj) ) ;
+             if (aargc == 3) break ;
+            }
+          else
+            {
+             thesub = i ;
+             TRACE(traceid, ("Selected Subscription Object %d]\n",thesub) ) ;
+             break ;
+            }
          }
       }
-    if ( (theobj == -1) ) rc = -10;
+    if (theobj == -1) rc = -10 ;
+    if ((rc == 0) && (aargc == 4) && (thesub == -1)) rc = -10 ;
    }
+//
 
+//
+// Do the MQSUB on the obtained Subscription object
 //
 // Do the MQSUB on the obtained Subscription object
 //
@@ -3995,14 +5970,17 @@ FTYPE  RXMQSUB  RXMQPARM
     TRACE(traceid, ("Calling MQSUB\n") )                               ;
     MQSUB ( anchor->QMh, &sd, &anchor->Qh[theobj], &sh, &mqrc, &mqac ) ;
     rc   = mqrc                                                        ;
-
     if ( anchor->Qh[theobj] != 0 )   //If the Subscribe worked,
-      {                              //then .....
+      {                              //then .
        stem_from_long(traceid, NULL, RX_handle, ""  , theobj) ;
        make_stem_from_sd(traceid,&sd,RXo_sd)                  ; //and update the SD
+       if (aargc == 4)
+         {
+          anchor->Qh[thesub] = sh ;
+          stem_from_long(traceid, NULL, RX_subhandle, ""  , thesub) ;
+         }
       }
    }
-
 //
 // Set the LAST variables, and the function return string
 //
@@ -4047,7 +6025,7 @@ FTYPE  RXMQBRWS  RXMQPARM
  MQLONG                  datalen   = 0    ;  //   Data length actual
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null handle"},
         {  -3, "Zero data handle"},
         {  -4, "Null data stem var"},
@@ -4095,7 +6073,7 @@ FTYPE  RXMQBRWS  RXMQPARM
 //
 // See if the handle is valid
 //
- if ( (rc == 0) && ( ( handle > MAXQS ) || ( handle <= 0 ) ) ) rc = -6 ;
+ if ( (rc == 0) && ( ( handle > MAXQS ) !! ( handle <= 0 ) ) ) rc = -6 ;
  if ( (rc == 0) && ( anchor->Qh[handle] == 0 ) )               rc = -7 ;
 
 //
@@ -4239,7 +6217,7 @@ FTYPE  RXMQHXT  RXMQPARM
 
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null input stem var"},
         {  -3, "Zero input stem var"},
         {  -4, "Null output stem var"},
@@ -4513,7 +6491,7 @@ FTYPE  RXMQEVNT  RXMQPARM
  char                    varvalc[100]     ;  // Char version of variable value
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null input stem var"},
         {  -3, "Zero input stem var"},
         {  -4, "Null output stem var"},
@@ -4905,7 +6883,7 @@ FTYPE  RXMQTM  RXMQPARM
  char                    zlist[200]       ;  // Char version of .ZLIST
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null input stem var"},
         {  -3, "Zero input stem var"},
         {  -4, "Null output stem var"},
@@ -5139,6 +7117,7 @@ FTYPE RXMQC  RXMQPARM
  MQLONG                  rc      = 0      ;  // Function Return Code
  MQLONG                  mqrc    = 0      ;  // MQ RC
  MQLONG                  mqac    = 0      ;  // MQ AC
+ MQLONG                  mqac2   = 0      ;  // MQ AC
  MQULONG                 traceid = COM    ;  // This function trace id
  MQLONG                  dummy            ;  // No interest rc
  MQULONG                 count   = 0      ;  // Responses received
@@ -5172,7 +7151,7 @@ FTYPE RXMQC  RXMQPARM
  MQLONG      to   = 5000                   ; //Timeout for MQ Get in msec
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null parms"},
         {  -3, "Zero parms"},
         {  -4, "Null command var"},
@@ -5248,7 +7227,7 @@ FTYPE RXMQC  RXMQPARM
 // 1) Connect to queue manager, if not yet connected
 
  if (rc == 0)
-   if ( (anchor->QMh == 0) || strcmp(anchor->QMname, qm) )   // Is it connected to correct QM ?
+   if ( (anchor->QMh == 0) !! strcmp(anchor->QMname, qm) )   // Is it connected to correct QM ?
      {                                                       // No
       DisconnectFinally = 1                         ;
       TRACE(traceid, ("Connecting to QM %s\n",qm) ) ;
@@ -5300,7 +7279,7 @@ FTYPE RXMQC  RXMQPARM
 
     memcpy(&pmo, &pmo_default, sizeof(MQPMO))            ;
     pmo.Options = MQPMO_NO_SYNCPOINT
-                | MQPMO_DEFAULT_CONTEXT                  ;
+                ! MQPMO_DEFAULT_CONTEXT                  ;
 
     TRACE(traceid, ("Now issuing the MQPUT to the Command Queue\n") ) ;
     MQPUT ( qmh, cQh, &md, &pmo, RX_command.strlength, RX_command.strptr, &mqrc, &mqac ) ;
@@ -5333,12 +7312,12 @@ FTYPE RXMQC  RXMQPARM
     TRACE(traceid, ("Now starting to obtain the ReplyToQ messages\n") ) ;
     memcpy(CorrelMsg, md.MsgId, sizeof(MQBYTE24))   ;
     memcpy(&gmo, &gmo_default, sizeof(MQGMO))       ;
-    gmo.Options = MQGMO_NO_SYNCPOINT                |
+    gmo.Options = MQGMO_NO_SYNCPOINT                !
                   MQGMO_WAIT                        ;
     gmo.WaitInterval =    to                        ;  // 5 sec
 
-    mqac = 4                                        ;  // CSQN205I rsn to continue
-    while ( ( (mqrc == 0) && (mqac == 4) ) || (linecnt < lines) )
+    mqac2 = 4                                        ;  // CSQN205I rsn to continue
+    while ( ( (mqrc == 0) && (mqac2 == 4) ) !! (linecnt < lines) )
       {
        TRACE(traceid, ("Issuing a MQGET to the ReplyToQ %s\n",rq) ) ;
        memcpy(&md,  &md_default,  sizeof(MQMD2))             ;
@@ -5370,8 +7349,8 @@ FTYPE RXMQC  RXMQPARM
        linecnt = 1;
        sscanf(((const char *) buffer)+17, "%8u", &lines) ;
        sscanf(((const char *) buffer)+34, "%8X", &mqrc) ;
-       sscanf(((const char *) buffer)+51, "%8X", &mqac);
-       TRACE(traceid, ("CSQN205I COUNT = %ld, RETURN = %ld, REASON = %ld\n",lines,mqrc,mqac) ) ;
+       sscanf(((const char *) buffer)+51, "%8X", &mqac2);
+       TRACE(traceid, ("CSQN205I COUNT = %ld, RETURN = %ld, REASON = %ld\n",lines,mqrc,mqac2) ) ;
       }
     else
       if ( lines == 0 )              // CSQN205I must be 1st response
@@ -5473,7 +7452,7 @@ FTYPE RXMQC RXMQPARM
  MQLONG                  commandlen             ; // to send to QM
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null parms"},
         {  -3, "Zero parms"},
         {  -4, "Null command var"},
@@ -5593,7 +7572,7 @@ if ( rc == 0 )
 
  if (rc == 0)
    {
-    if ( (anchor->QMh == 0) || strcmp(anchor->QMname, qm) ) // Is it connected to correct QM ?
+    if ( (anchor->QMh == 0) !! strcmp(anchor->QMname, qm) ) // Is it connected to correct QM ?
       {                                                     // No
        DisconnectFinally = 1                                        ;
        TRACE(traceid, ("Connecting to QM %s\n",qm) )                ;
@@ -5875,7 +7854,7 @@ FTYPE RXMQV  RXMQPARM
  MQULONG                 namelen          ;  // Name length
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null MQ function name"},
         {  -3, "Zero length MQ function name"},
         { -20, "Unknown MQ function name"},
@@ -5913,6 +7892,11 @@ FTYPE RXMQV  RXMQPARM
           {"HXT"   , RXMQHXT},
           {"EVENT" , RXMQEVNT},
           {"TM"    , RXMQTM},
+          {"MH"    , RXMQMH},
+          {"DMH"   , RXMQDMH},
+          {"SMP"   , RXMQSMP},
+          {"IMP"   , RXMQIMP},
+          {"DMP"   , RXMQDMP},
           {"?"     , NULL}  };
 
 // Uppercase specified function name
@@ -5958,7 +7942,7 @@ FTYPE RXMQVC  RXMQPARM
  MQULONG                 namelen          ;  // Name length
 
  RETMSG ReturnMsg[] = {
-        {  -1, "Bad number of parms" },
+        {  -1, "Bad number of parameters" },
         {  -2, "Null MQ function name"},
         {  -3, "Zero length MQ function name"},
         { -20, "Unknown MQ function name"},

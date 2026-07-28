@@ -1,0 +1,248 @@
+/* REXX */
+/*
+  * HANDLE8 - Message handle / MQRFH2 buffer conversion
+ *
+  * CONN
+  * -> create MH1
+  * -> SETMP several properties in MH1
+  * -> MQMHBUF: MH1 to MQRFH2 buffer
+  * -> create MH2
+  * -> MQBUFMH: MQRFH2 buffer to MH2
+  * -> verify properties reconstructed in MH2
+  * -> cleanup
+ */
+TRACE o
+qmgr = 'QM1'
+mh1cree  = 0
+mh2cree  = 0
+connecte = 0
+rcode    = 0
+say "QMGR =" qmgr
+say ""
+/* --------------------------------------------------------------- */
+/* 0. Initialization */
+/* --------------------------------------------------------------- */
+  rcc = rxmqinit()
+  if word(rcc,1) /= 0      then do
+   say time('l') 'initialization problem rc ==> ' rcc
+   interpret 'msgerr = rxmq.rcmap.'word(rcc,1)
+   say "                                           ==> "msgerr
+   exit 8
+   end
+/* --------------------------------------------------------------- */
+/* Connection */
+/* --------------------------------------------------------------- */
+rcc = RXMQCONN(qmgr)
+say "CONN =" rcc
+if word(rcc,1) <> 0 then do
+   rcode = 8
+   signal cleanup
+end
+connecte = 1
+/* --------------------------------------------------------------- */
+/* Create message handle MH1 */
+/* --------------------------------------------------------------- */
+cmho1.OPT = MQCMHO_VALIDATE
+rcc = RXMQMH('mh1','cmho1.')
+say "MH1 =" rcc mh1
+if word(rcc,1) <> 0 then do
+   rcode = 8
+   signal cleanup
+end
+mh1cree = 1
+/* --------------------------------------------------------------- */
+/* Define properties in MH1 */
+/* --------------------------------------------------------------- */
+smpo1.OPT        = MQSMPO_NONE
+pd1.OPT          = MQPD_NONE
+pd1.SUPPORT      = MQPD_SUPPORT_OPTIONAL
+pd1.CONTEXT      = MQPD_NO_CONTEXT
+pd1.COPYOPTIONS  = MQCOPY_DEFAULT
+rcc=RXMQSMP('mh1','smpo1.','usr.color','pd1.',MQTYPE_STRING,'blue')
+say "SMP usr.color     =" rcc
+if word(rcc,1) <> 0 then do
+   rcode = 8
+   signal cleanup
+end
+rcc=RXMQSMP('mh1','smpo1.','usr.quantite','pd1.',MQTYPE_INT32,25)
+say "SMP usr.quantite    =" rcc
+if word(rcc,1) <> 0 then do
+   rcode = 8
+   signal cleanup
+end
+rcc=RXMQSMP('mh1','smpo1.','usr.prioritaire','pd1.',MQTYPE_BOOLEAN,1)
+say "SMP usr.prioritaire =" rcc
+if word(rcc,1) <> 0 then do
+   rcode = 8
+   signal cleanup
+end
+rcc=RXMQSMP('mh1','smpo1.','usr.montant','pd1.',MQTYPE_FLOAT64,123.45)
+say "SMP usr.montant     =" rcc
+if word(rcc,1) <> 0 then do
+   rcode = 8
+   signal cleanup
+end
+rcc=RXMQSMP('mh1','smpo1.','usr.client','pd1.',MQTYPE_STRING,'IBM')
+say "SMP usr.client      =" rcc
+if word(rcc,1) <> 0 then do
+   rcode = 8
+   signal cleanup
+end
+/* --------------------------------------------------------------- */
+/* Convert message handle MH1 to an MQRFH2 buffer */
+/* --------------------------------------------------------------- */
+mhbo1.OPT = MQMHBO_NONE
+md1.VER  = MQMD_VERSION_2
+md1.REP  = MQRO_NONE
+md1.MSG  = MQMT_DATAGRAM
+md1.EXP  = MQEI_UNLIMITED
+md1.FBK  = MQFB_NONE
+md1.ENC  = MQENC_NATIVE
+md1.CCSI = MQCCSI_Q_MGR
+md1.FORM = MQFMT_STRING
+md1.PRI  = MQPRI_PRIORITY_AS_Q_DEF
+md1.PER  = MQPER_PERSISTENCE_AS_Q_DEF
+pnam = '%'
+buf  = ''
+blen = 0
+say ""
+say "=============================================="
+say "MQMHBUF: MH1 TO MQRFH2 BUFFER"
+say "=============================================="
+rcc = RXMQMBF('mh1','mhbo1.',pnam,'md1.','buf',8192,'blen')
+say "MBF =" rcc
+say "MD.CCSI   =" md1.CCSI
+say "MD.ENC    =" md1.ENC
+say "MD.FORM   =" md1.FORM
+say "buf length=" length(buf)
+say "blen      =" blen
+say "buf hex   =" c2x(substr(buf,1,64))
+if word(rcc,1) <> 0 then do
+   rcode = 8
+   signal cleanup
+end
+if blen = 0 then do
+   say "FAILED: no MQRFH2 buffer returned"
+   rcode = 8
+   signal cleanup
+end
+/* --------------------------------------------------------------- */
+/* Create message handle MH2 */
+/* --------------------------------------------------------------- */
+cmho2.OPT = MQCMHO_VALIDATE
+rcc = RXMQMH('mh2','cmho2.')
+say ""
+say "MH2 =" rcc mh2
+if word(rcc,1) <> 0 then do
+   rcode = 8
+   signal cleanup
+end
+mh2cree = 1
+/* --------------------------------------------------------------- */
+/* Convert the MQRFH2 buffer to message handle MH2 */
+/* --------------------------------------------------------------- */
+bmho1.OPT = MQBMHO_NONE
+say ""
+say "=============================================="
+say "MQBUFMH: MQRFH2 BUFFER TO MH2"
+say "=============================================="
+rcc = RXMQBMH('mh2','bmho1.','md1.',buf)
+say "BMH =" rcc
+if word(rcc,1) <> 0 then do
+   rcode = 8
+   signal cleanup
+end
+/* --------------------------------------------------------------- */
+/* MQINQMP options */
+/* --------------------------------------------------------------- */
+impo1.OPT    = MQIMPO_NONE + MQIMPO_CONVERT_VALUE
+impo1.RQENC  = MQENC_NATIVE
+impo1.RQCCSI = MQCCSI_APPL
+handleinq = 'mh2'
+/* --------------------------------------------------------------- */
+/* Verify properties reconstructed in MH2 */
+/* --------------------------------------------------------------- */
+say ""
+say "=============================================="
+say "VERIFY PROPERTIES IN MH2"
+say "=============================================="
+say ""
+call verifprop 'usr.color',MQTYPE_STRING,'blue'
+call verifprop 'usr.quantite',MQTYPE_INT32,'25'
+call verifprop 'usr.prioritaire',MQTYPE_BOOLEAN,'1'
+call verifprop 'usr.montant',MQTYPE_FLOAT64,'123.45'
+call verifprop 'usr.client',MQTYPE_STRING,'IBM'
+/* --------------------------------------------------------------- */
+/* Summary */
+/* --------------------------------------------------------------- */
+say ""
+if rcode = 0 then do
+   say "=============================================="
+   say "TEST PASSED: MQMHBUF AND MQBUFMH"
+   say "THE MH1 PROPERTIES WERE RECONSTRUCTED"
+   say "IN MH2 FROM THE MQRFH2 BUFFER"
+   say "=============================================="
+end
+else do
+   say "=============================================="
+   say "TEST FAILED: MQMHBUF AND MQBUFMH"
+   say "=============================================="
+end
+signal cleanup
+/* --------------------------------------------------------------- */
+/* Verify one property */
+/* --------------------------------------------------------------- */
+verifprop:
+   parse arg nomatt,typeatt,valatt
+   pvalue.0 = 4096
+   pvalue.1 = ''
+   pnameout = ''
+   ptype    = ''
+   rcc=RXMQIMP(handleinq,'impo1.',nomatt,'pdout.','ptype','pvalue.','pnameout')
+   say "Verifying" nomatt
+   say "  IMP              =" rcc
+   if word(rcc,1) <> 0 then do
+      say "  FAILED: property is absent or inquiry failed"
+      rcode = 8
+      say "----------------------------------------------"
+      return
+   end
+   say "  Returned name     =" pnameout
+   say "  Returned type    =" ptype
+   say "  Expected type     =" typeatt
+   say "  Returned value =" pvalue.1
+   say "  Expected value  =" valatt
+   if ptype <> typeatt then do
+      say "  FAILED: unexpected type"
+      rcode = 8
+   end
+   else if pvalue.1 <> valatt then do
+      say "  FAILED: unexpected value"
+      rcode = 8
+   end
+   else
+      say "  OK: property was reconstructed"
+   say "----------------------------------------------"
+return
+/* --------------------------------------------------------------- */
+/* Single cleanup path */
+/* --------------------------------------------------------------- */
+cleanup:
+   if mh2cree = 1 then do
+      dmho2.OPT = MQDMHO_NONE
+      rcc2 = RXMQDMH('mh2','dmho2.')
+      say "DMH mh2 =" rcc2
+      mh2cree = 0
+   end
+   if mh1cree = 1 then do
+      dmho1.OPT = MQDMHO_NONE
+      rcc2 = RXMQDMH('mh1','dmho1.')
+      say "DMH mh1 =" rcc2
+      mh1cree = 0
+   end
+   if connecte = 1 then do
+      rcc2 = RXMQDISC()
+      say "DISC =" rcc2
+      connecte = 0
+   end
+exit rcode

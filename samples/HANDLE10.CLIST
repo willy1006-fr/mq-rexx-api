@@ -1,0 +1,517 @@
+/* REXX */
+/*
+  * HANDLE10 - Selecting messages with MQOD.SelectionString
+ *
+  * This sample creates five messages on the same queue. Each message contains:
+ *
+  * usr.testid : unique identifier for this run
+  * usr.color  : BLUE, RED, or GREEN
+  * usr.site   : PARIS, LYON, or LILLE
+ *
+  * Two demonstrations are then performed:
+ *
+  * 1. Property-based selection:
+  * usr.testid = '<runid>' AND usr.color = 'BLUE'
+  * Two messages must be retrieved.
+ *
+  * 2. Combined MsgId and property selection:
+  * Root.MQMD.MsgId = "0x..."
+  * AND usr.testid = '<runid>'
+  * AND usr.color = 'RED'
+  * Exactly one specific message must be retrieved.
+ *
+  * The remaining messages from this run are then deleted with
+  * a final selector usr.testid = '<runid>'.
+ */
+
+trace o
+
+qmgr  = 'QM1'
+qname = 'DEV.QUEUE.1'
+runid = 'SEL' !! date('S') !! right(time('S'),5,'0')
+
+connecte = 0
+hputouvert = 0
+hselouvert = 0
+mhcree = 0
+rcode = 0
+
+say '============================================================'
+say 'HANDLE10 - MQ SELECTOR TEST'
+say 'QMGR  =' qmgr
+say 'QUEUE =' qname
+say 'RUNID =' runid
+say '============================================================'
+say ''
+
+/* --------------------------------------------------------------- */
+/* Initialization and connection */
+/* --------------------------------------------------------------- */
+rcc = RXMQINIT()
+say 'INIT =' rcc
+if word(rcc,1) <> 0 then exit 8
+
+rcc = RXMQCONN(qmgr)
+say 'CONN =' rcc
+if word(rcc,1) <> 0 then do
+   rcode = 8
+   signal cleanup
+end
+connecte = 1
+
+/* --------------------------------------------------------------- */
+/* Open the queue for output */
+/* --------------------------------------------------------------- */
+drop iodput. oodput.
+iodput.VER = MQOD_VERSION_4
+iodput.OT  = MQOT_Q
+iodput.ON  = qname
+
+openput = MQOO_OUTPUT + MQOO_FAIL_IF_QUIESCING
+rcc = RXMQOPEN('iodput.',openput,'hput','oodput.')
+say 'OPEN output =' rcc ' hput=' hput
+if word(rcc,1) <> 0 then do
+   rcode = 8
+   signal cleanup
+end
+hputouvert = 1
+
+/* --------------------------------------------------------------- */
+/* Create the five messages */
+/* --------------------------------------------------------------- */
+say ''
+say 'Create messages'
+say '----------------------------------------------'
+
+call putmessage 1, 'BLUE',  'PARIS', 'Message 1 : BLUE PARIS'
+if rcode <> 0 then signal cleanup
+
+call putmessage 2, 'RED',   'LYON',  'Message 2 : RED LYON'
+if rcode <> 0 then signal cleanup
+
+call putmessage 3, 'BLUE',  'LILLE', 'Message 3 : BLUE LILLE'
+if rcode <> 0 then signal cleanup
+
+call putmessage 4, 'GREEN', 'PARIS', 'Message 4 : GREEN PARIS'
+if rcode <> 0 then signal cleanup
+
+/* This fifth message is later targeted by its exact MsgId. */
+call putmessage 5, 'RED',   'PARIS', 'Message 5: RED PARIS target MsgId'
+if rcode <> 0 then signal cleanup
+
+targetmsgid    = msgid5
+targetmsgidhex = c2x(targetmsgid)
+
+say ''
+say 'Target MsgId for message 5 = 0x' !! targetmsgidhex
+
+/* The PUT handle is no longer required. */
+rcc = RXMQCLOS(hput,MQCO_NONE)
+say 'CLOSE output =' rcc
+hputouvert = 0
+if word(rcc,1) <> 0 then do
+   rcode = 8
+   signal cleanup
+end
+
+/* =============================================================== */
+/* TEST 1 - Property-based selection */
+/* =============================================================== */
+say ''
+say '============================================================'
+say 'TEST 1 - PROPERTY-BASED SELECTION'
+say '============================================================'
+
+selector1 = "usr.testid = '" !! runid !!,
+            "' AND usr.color = 'BLUE'"
+
+say 'Selector = ' selector1
+
+call openselector selector1
+if rcode <> 0 then signal cleanup
+
+count1 = 0
+call createmh
+if rcode <> 0 then signal cleanup
+
+do forever
+   call getselected 1000
+
+   if getreason = MQRC_NO_MSG_AVAILABLE then leave
+   if getcc <> MQCC_OK then do
+      rcode = 8
+      signal cleanup
+   end
+
+   count1 = count1 + 1
+   call showproperties
+end
+
+call deletemh
+call closeselector
+
+say 'Number of BLUE messages retrieved =' count1
+if count1 = 2 then
+   say 'TEST 1 PASSED: exactly two messages selected'
+else do
+   say 'TEST 1 FAILED: expected 2, actual' count1
+   rcode = 8
+   signal cleanup
+end
+
+/* =============================================================== */
+/* TEST 2 - Combined MsgId and property selection */
+/* =============================================================== */
+say ''
+say '============================================================'
+say 'TEST 2 - MsgId + PROPERTY SELECTION'
+say '============================================================'
+
+selector2 = 'Root.MQMD.MsgId = "0x' !! targetmsgidhex !!,
+            '" AND usr.testid = ''' !! runid !!,
+            ''' AND usr.color = ''RED'''
+
+say 'Selector = ' selector2
+
+call openselector selector2
+if rcode <> 0 then signal cleanup
+
+call createmh
+if rcode <> 0 then signal cleanup
+
+call getselected 3000
+if getcc <> MQCC_OK then do
+   say 'TEST 2 FAILED: target message was not found'
+   rcode = 8
+   signal cleanup
+end
+
+say 'Target message retrieved'
+say 'Received MsgId = 0x' !! c2x(ogmd.MSGID)
+call showproperties
+
+if c2x(ogmd.MSGID) <> targetmsgidhex then do
+   say 'TEST 2 FAILED: MsgId differs from target MsgId'
+   rcode = 8
+   signal cleanup
+end
+
+/* A second GET must not find another message for this exact selector. */
+call getselected 1000
+if getreason = MQRC_NO_MSG_AVAILABLE then
+   say 'No second message: OK'
+else do
+   say 'TEST 2 FAILED: more than one message matched the MsgId'
+   rcode = 8
+   signal cleanup
+end
+
+call deletemh
+call closeselector
+say 'TEST 2 PASSED: exactly one specific message selected'
+
+/* =============================================================== */
+/* CLEANUP - delete the remaining messages from this run */
+/* =============================================================== */
+say ''
+say '============================================================'
+say 'DELETE REMAINING MESSAGES'
+say '============================================================'
+
+selector3 = "usr.testid = '" !! runid !! "'"
+say 'Selector = ' selector3
+
+call openselector selector3
+if rcode <> 0 then signal cleanup
+
+call createmh
+if rcode <> 0 then signal cleanup
+
+reste = 0
+do forever
+   call getselected 500
+   if getreason = MQRC_NO_MSG_AVAILABLE then leave
+   if getcc <> MQCC_OK then do
+      rcode = 8
+      signal cleanup
+   end
+   reste = reste + 1
+   say 'Remaining message deleted :' msg.1
+end
+
+call deletemh
+call closeselector
+say 'Number of remaining messages deleted =' reste
+
+say ''
+say '============================================================'
+say 'TEST PASSED: MESSAGE SELECTION BY PROPERTIES AND MsgId'
+say '============================================================'
+signal cleanup
+
+/* ================================================================= */
+/* Subroutine: create and PUT one message */
+/* ================================================================= */
+putmessage:
+   parse arg numero, couleur, site, corps
+
+   drop cmho. smpo. pd. imd. omd. ipmo. opmo. data.
+
+   cmho.OPT = MQCMHO_VALIDATE
+   rcc = RXMQMH('mhput','cmho.')
+   if word(rcc,1) <> 0 then do
+      say 'MQCRTMH error =' rcc
+      rcode = 8
+      return
+   end
+
+   smpo.OPT       = MQSMPO_NONE
+   pd.VER         = MQPD_VERSION_1
+   pd.OPT         = MQPD_NONE
+   pd.SUPPORT     = MQPD_SUPPORT_OPTIONAL
+   pd.CONTEXT     = MQPD_NO_CONTEXT
+   pd.COPYOPTIONS = MQCOPY_NONE
+
+   rcc = RXMQSMP('mhput','smpo.','usr.testid','pd.',MQTYPE_STRING,runid)
+   if word(rcc,1) <> 0 then do
+      say 'SET usr.testid error =' rcc
+      rcode = 8
+      signal putmessage_cleanup
+   end
+
+   rcc = RXMQSMP('mhput','smpo.','usr.color','pd.',MQTYPE_STRING,couleur)
+   if word(rcc,1) <> 0 then do
+      say 'SET usr.color error =' rcc
+      rcode = 8
+      signal putmessage_cleanup
+   end
+
+   rcc = RXMQSMP('mhput','smpo.','usr.site','pd.',MQTYPE_STRING,site)
+   if word(rcc,1) <> 0 then do
+      say 'SET usr.site error =' rcc
+      rcode = 8
+      signal putmessage_cleanup
+   end
+
+   rcc = RXMQSMP('mhput','smpo.','usr.numero','pd.',MQTYPE_INT32,numero)
+   if word(rcc,1) <> 0 then do
+      say 'SET usr.numero error =' rcc
+      rcode = 8
+      signal putmessage_cleanup
+   end
+
+   data.1 = corps
+   data.0 = length(data.1)
+
+   imd.VER   = MQMD_VERSION_2
+   imd.REP   = MQRO_NONE
+   imd.MSG   = MQMT_DATAGRAM
+   imd.EXP   = MQEI_UNLIMITED
+   imd.FBK   = MQFB_NONE
+   imd.ENC   = MQENC_NATIVE
+   imd.CCSI  = MQCCSI_Q_MGR
+   imd.FORM  = MQFMT_STRING
+   imd.PRI   = MQPRI_PRIORITY_AS_Q_DEF
+   imd.PER   = MQPER_PERSISTENCE_AS_Q_DEF
+   imd.MSGID = MQMI_NONE
+   imd.CID   = MQCI_NONE
+
+   ipmo.VER  = MQPMO_VERSION_3
+   ipmo.OPT  = MQPMO_NO_SYNCPOINT +,
+               MQPMO_FAIL_IF_QUIESCING +,
+               MQPMO_NEW_MSG_ID +,
+               MQPMO_DEFAULT_CONTEXT
+   ipmo.OMH  = MQHM_NONE
+   ipmo.NMH  = mhput
+   ipmo.ACT  = MQACTP_NEW
+
+   rcc = RXMQPUT(hput,'data.','imd.','omd.','ipmo.','opmo.')
+   say 'PUT' numero couleur site '=' rcc
+   if word(rcc,1) <> 0 then do
+      rcode = 8
+      signal putmessage_cleanup
+   end
+
+   say '  Body = ' corps
+   say '  MsgId = 0x' !! c2x(omd.MSGID)
+
+   if numero = 5 then msgid5 = omd.MSGID
+
+putmessage_cleanup:
+   dmho.OPT = MQDMHO_NONE
+   rcc2 = RXMQDMH('mhput','dmho.')
+   if word(rcc2,1) <> 0 then do
+      say 'MQDLTMH error =' rcc2
+      rcode = 8
+   end
+   return
+
+/* ================================================================= */
+/* Subroutine: open with MQOD.SelectionString */
+/* ================================================================= */
+openselector:
+   parse arg selecteur
+
+   drop iodsel. oodsel.
+   iodsel.VER = MQOD_VERSION_4
+   iodsel.OT  = MQOT_Q
+   iodsel.ON  = qname
+
+   /* MQCHARV SelectionString represented by the SS sub-stem. */
+   iodsel.SS.0    = length(selecteur)
+   iodsel.SS.1    = selecteur
+   iodsel.SS.CCSI = MQCCSI_APPL
+
+   openin = MQOO_INPUT_SHARED + MQOO_FAIL_IF_QUIESCING
+   rcc = RXMQOPEN('iodsel.',openin,'hsel','oodsel.')
+   say 'OPEN selector =' rcc ' hsel=' hsel
+   if word(rcc,1) <> 0 then do
+      rcode = 8
+      return
+   end
+   hselouvert = 1
+   return
+
+/* ================================================================= */
+/* Subroutine: close the selector handle */
+/* ================================================================= */
+closeselector:
+   if hselouvert = 1 then do
+      rcc = RXMQCLOS(hsel,MQCO_NONE)
+      say 'CLOSE selector =' rcc
+      if word(rcc,1) <> 0 then rcode = 8
+      hselouvert = 0
+   end
+   return
+
+/* ================================================================= */
+/* Subroutine: create the GET message handle */
+/* ================================================================= */
+createmh:
+   drop cmhoget.
+   cmhoget.OPT = MQCMHO_VALIDATE
+   rcc = RXMQMH('mhget','cmhoget.')
+   say 'MH GET =' rcc ' mhget=' mhget
+   if word(rcc,1) <> 0 then do
+      rcode = 8
+      return
+   end
+   mhcree = 1
+   return
+
+/* ================================================================= */
+/* Subroutine: delete the GET message handle */
+/* ================================================================= */
+deletemh:
+   if mhcree = 1 then do
+      dmho.OPT = MQDMHO_NONE
+      rcc = RXMQDMH('mhget','dmho.')
+      say 'DMH GET =' rcc
+      if word(rcc,1) <> 0 then rcode = 8
+      mhcree = 0
+   end
+   return
+
+/* ================================================================= */
+/* Subroutine: GET a message matching the selector */
+/* ================================================================= */
+getselected:
+   parse arg attente
+
+   drop msg. igmd. ogmd. igmo. ogmo.
+   msg.0 = 8192
+
+   igmd.VER   = MQMD_VERSION_2
+   igmd.ENC   = MQENC_NATIVE
+   igmd.CCSI  = MQCCSI_Q_MGR
+   igmd.FORM  = MQFMT_NONE
+   igmd.MSGID = MQMI_NONE
+   igmd.CID   = MQCI_NONE
+
+   igmo.VER  = MQGMO_VERSION_4
+   igmo.OPT  = MQGMO_NO_SYNCPOINT +,
+               MQGMO_WAIT +,
+               MQGMO_FAIL_IF_QUIESCING +,
+               MQGMO_PROPERTIES_IN_HANDLE
+   igmo.WAIT = attente
+   igmo.MOPT = MQMO_NONE
+   igmo.MH   = mhget
+
+   rcc = RXMQGET(hsel,'msg.','igmd.','ogmd.','igmo.','ogmo.')
+   getcc     = RXMQ.LASTCC
+   getreason = RXMQ.LASTAC
+
+   if getcc = MQCC_OK then do
+      say 'GET =' rcc
+      say '  Body = ' msg.1
+   end
+   else if getreason <> MQRC_NO_MSG_AVAILABLE then
+      say 'GET error =' rcc
+
+   return
+
+/* ================================================================= */
+/* Subroutine: display properties of the selected message */
+/* ================================================================= */
+showproperties:
+   call inqstring 'usr.testid', 'testid'
+   call inqstring 'usr.color',  'color'
+   call inqstring 'usr.site',   'site'
+   call inqstring 'usr.numero', 'numero'
+
+   say '  MsgId      = 0x' !! c2x(ogmd.MSGID)
+   say '  usr.testid =' testid
+   say '  usr.color  =' color
+   say '  usr.site   =' site
+   say '  usr.numero =' numero
+   say '----------------------------------------------'
+   return
+
+/* ================================================================= */
+/* Subroutine: inquire one property in the message handle */
+/* ================================================================= */
+inqstring:
+   parse arg propname, resultname
+
+   drop impo. pdout. pvalue.
+   impo.OPT    = MQIMPO_INQ_FIRST
+   impo.RQENC  = MQENC_NATIVE
+   impo.RQCCSI = MQCCSI_APPL
+   pvalue.0    = 4096
+   pnameout    = ''
+   ptype       = 0
+
+   rcc = RXMQIMP('mhget','impo.',propname,'pdout.',,
+                 'ptype','pvalue.','pnameout')
+   if word(rcc,1) = 0 then
+      interpret resultname '= pvalue.1'
+   else do
+      interpret resultname "= '<absent>'"
+      say 'INQ' propname 'error =' rcc
+      rcode = 8
+   end
+   return
+
+/* ================================================================= */
+/* General cleanup */
+/* ================================================================= */
+cleanup:
+   if mhcree = 1 then call deletemh
+   if hselouvert = 1 then call closeselector
+
+   if hputouvert = 1 then do
+      rcc = RXMQCLOS(hput,MQCO_NONE)
+      say 'CLOSE output cleanup =' rcc
+      hputouvert = 0
+   end
+
+   if connecte = 1 then do
+      rcc = RXMQDISC()
+      say 'DISC =' rcc
+      connecte = 0
+   end
+
+   rcc = RXMQTERM()
+   say 'TERM =' rcc
+
+   exit rcode
