@@ -1,87 +1,93 @@
 /* REXX */
 /*
-  * HANDLE4 - IBM MQ properties with multiple data types
+ * HANDLE4 - Proprietes IBM MQ de plusieurs types
  *
-  * This sample deliberately follows the structure of HANDLE1:
-  * CONN -> OPEN -> create MH1 -> SETMP -> PUT
-  * -> create MH2 -> GET -> INQMP -> cleanup
+ * Ce sample reprend volontairement la structure de HANDLE1 :
+ *   CONN -> OPEN -> creation MH1 -> SETMP -> PUT
+ *   -> creation MH2 -> GET -> INQMP -> nettoyage
  *
-  * Properties tested:
-  * usr.color     MQTYPE_STRING
-  * usr.quantite    MQTYPE_INT32
-  * usr.grandnombre MQTYPE_INT64
-  * usr.prioritaire MQTYPE_BOOLEAN
-  * usr.montant     MQTYPE_FLOAT64
-  * usr.temperature MQTYPE_FLOAT32
+ * Proprietes testees :
+ *   usr.couleur     MQTYPE_STRING
+ *   usr.quantite    MQTYPE_INT32
+ *   usr.grandnombre MQTYPE_INT64
+ *   usr.nbint8      MQTYPE_INT8
+ *   usr.nbint16     MQTYPE_INT16
+ *   usr.prioritaire MQTYPE_BOOLEAN
+ *   usr.montant     MQTYPE_FLOAT64
+ *   usr.temperature MQTYPE_FLOAT32
  *
-  * RXMQVTRACE = 'CONN OPEN PUT GET CLOSE DISC MH SMP IMP DMH'
+ * RXMQVTRACE = 'CONN OPEN PUT GET CLOSE DISC MH SMP IMP DMH'
  */
-TRACE o
+TRACE O
 
-qmgr  = 'QM1'
-qname = 'DEV.QUEUE.1'
+qmgr  = 'CSQP'
+qname = 'CSQP.QL.TEST'
 
 mh1cree = 0
 mh2cree = 0
 ouvert  = 0
 connecte = 0
 rcode = 0
+firstFailure = ''
 
 say "QMGR =" qmgr
 say "QUEUE=" qname
 say ""
 /* --------------------------------------------------------------- */
-/* 0. Initialization */
+/* 0. Initialisation                                              */
 /* --------------------------------------------------------------- */
   rcc = rxmqinit()
   if word(rcc,1) /= 0      then do
-   say time('l') 'initialization problem rc ==> ' rcc
-   interpret 'msgerr = rxmq.rcmap.'word(rcc,1)
-   say "                                           ==> "msgerr
-   exit 8
+   say time('l') 'probleme initialisation rc ==> ' rcc
+   call showerr rcc
+   rcode = 8
+   signal cleanup
    end
 
 /* --------------------------------------------------------------- */
-/* Connection */
+/* Connexion                                                       */
 /* --------------------------------------------------------------- */
 rcc = RXMQCONN(qmgr)
 say "CONN =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 connecte = 1
 
 /* --------------------------------------------------------------- */
-/* Open the queue for input and output */
+/* Ouverture de la file en entree et en sortie                     */
 /* --------------------------------------------------------------- */
 iod1.OT = MQOT_Q
 iod1.ON = qname
-iod1.OM = ''
+iod1.OQM = ''
 
 oo1 = MQOO_OUTPUT + MQOO_INPUT_SHARED + MQOO_FAIL_IF_QUIESCING
 
 rcc = RXMQOPEN('iod1.',oo1,'h1','ood1.')
 say "OPEN =" rcc " h1=" h1
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 ouvert = 1
 
 /* --------------------------------------------------------------- */
-/* Create the source message handle */
+/* Creation du message handle source                               */
 /* --------------------------------------------------------------- */
 cmho1.OPT = MQCMHO_VALIDATE
 rcc = RXMQMH('mh1','cmho1.')
 say "MH1  =" rcc mh1
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 mh1cree = 1
 
-/* Common descriptor for the usr.* application properties */
+/* Descripteur commun aux proprietes applicatives usr.* */
 smpo1.OPT       = MQSMPO_NONE
 pd1.OPT         = MQPD_NONE
 pd1.SUPPORT     = MQPD_SUPPORT_OPTIONAL
@@ -89,71 +95,98 @@ pd1.CONTEXT     = MQPD_NO_CONTEXT
 pd1.COPYOPTIONS = MQCOPY_DEFAULT
 
 /* --------------------------------------------------------------- */
-/* 1. STRING property */
+/* 1. Propriete STRING                                             */
 /* --------------------------------------------------------------- */
-rcc = RXMQSMP('mh1','smpo1.','usr.color','pd1.', MQTYPE_STRING,'red')
-say "SMP usr.color     STRING  red   =" rcc
+rcc = RXMQSMP('mh1','smpo1.','usr.couleur','pd1.', MQTYPE_STRING,'rouge')
+say "SMP usr.couleur     STRING  rouge   =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 
 /* --------------------------------------------------------------- */
-/* 2. INT32 property */
+/* 2. Propriete INT32                                              */
 /* --------------------------------------------------------------- */
 rcc = RXMQSMP('mh1','smpo1.','usr.quantite','pd1.',MQTYPE_INT32,25)
 say "SMP usr.quantite    INT32   25      =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 /* --------------------------------------------------------------- */
-/* 3. INT64 property */
+/* 3. Propriete INT64                                              */
 /* --------------------------------------------------------------- */
 rcc = RXMQSMP('mh1','smpo1.','usr.grandnombre','pd1.',MQTYPE_INT64,5000000000)
 say "SMP usr.grandnombre INT64   5000000000 =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 /* --------------------------------------------------------------- */
-/* 4. BOOLEAN property */
-/* MQBOOL: 0 = FALSE, any other value = TRUE */
+/* 4. Propriete INT8                                               */
+/* --------------------------------------------------------------- */
+rcc = RXMQSMP('mh1','smpo1.','usr.nbint8','pd1.',MQTYPE_INT8,127)
+say "SMP usr.nbint8 INT8    127 =" rcc
+if word(rcc,1) <> 0 then do
+   call showerr rcc
+   rcode = 8
+   signal cleanup
+end
+/* --------------------------------------------------------------- */
+/* 5. Propriete INT16                                              */
+/* --------------------------------------------------------------- */
+rcc = RXMQSMP('mh1','smpo1.','usr.nbint16','pd1.',MQTYPE_INT16,300)
+say "SMP usr.nbint16 INT16    300 =" rcc
+if word(rcc,1) <> 0 then do
+   call showerr rcc
+   rcode = 8
+   signal cleanup
+end
+/* --------------------------------------------------------------- */
+/* 6. Propriete BOOLEAN                                            */
+/* MQBOOL : 0 = FALSE, toute autre valeur = TRUE                   */
 /* --------------------------------------------------------------- */
 rcc = RXMQSMP('mh1','smpo1.','usr.prioritaire','pd1.', MQTYPE_BOOLEAN,1)
 say "SMP usr.prioritaire BOOLEAN TRUE(1) =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 
 /* --------------------------------------------------------------- */
-/* 5. FLOAT64 property */
+/* 5. Propriete FLOAT64                                            */
 /* --------------------------------------------------------------- */
 rcc = RXMQSMP('mh1','smpo1.','usr.montant','pd1.',MQTYPE_FLOAT64,123.45)
 say "SMP usr.montant     FLOAT64 123.45  =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 
 /* --------------------------------------------------------------- */
-/* 6. FLOAT32 property */
+/* 5. Propriete FLOAT32                                            */
 /* --------------------------------------------------------------- */
 rcc=RXMQSMP('mh1','smpo1.','usr.temperature','pd1.',MQTYPE_FLOAT32,12.5)
 say "SMP usr.temperature FLOAT32 12.5  =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 
 /* --------------------------------------------------------------- */
-/* Message body */
+/* Corps du message                                                */
 /* --------------------------------------------------------------- */
-d.1 = 'Test command: couleur=rouge quantite=25 montant=123.45'
+d.1 = 'Commande test : couleur=rouge quantite=25 montant=123.45 nbint8=127'
+d.1 = d.1||' nbint16=300'
 d.0 = length(d.1)
 
-/* MQMD for the PUT */
+/* MQMD du PUT */
 imd2.VER  = MQMD_VERSION_2
 imd2.REP  = MQRO_NONE
 imd2.MSG  = MQMT_DATAGRAM
@@ -165,7 +198,7 @@ imd2.FORM = MQFMT_STRING
 imd2.PRI  = MQPRI_PRIORITY_AS_Q_DEF
 imd2.PER  = MQPER_PERSISTENCE_AS_Q_DEF
 
-/* PMO: properties are supplied by handle mh1 */
+/* PMO : les proprietes sont fournies par le handle mh1 */
 ipmo2.VER     = MQPMO_VERSION_3
 ipmo2.OPT = MQPMO_NO_SYNCPOINT+MQPMO_FAIL_IF_QUIESCING+MQPMO_DEFAULT_CONTEXT
 ipmo2.TIME    = MQWI_UNLIMITED
@@ -177,33 +210,36 @@ ipmo2.PL      = 0
 rcc = RXMQPUT(h1,'d.','imd2.','omd2.','ipmo2.','opmo2.')
 say "PUT  =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 
-/* The source handle is no longer required after the PUT */
+/* Le handle source n'est plus necessaire apres le PUT */
 dmho1.OPT = MQDMHO_NONE
 rcc = RXMQDMH('mh1','dmho1.')
 say "DMH mh1 =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 mh1cree = 0
 
 /* --------------------------------------------------------------- */
-/* Create the receiving handle */
+/* Creation du handle de reception                                 */
 /* --------------------------------------------------------------- */
 cmho2.OPT = MQCMHO_VALIDATE
 rcc = RXMQMH('mh2','cmho2.')
 say "MH2  =" rcc mh2
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 mh2cree = 1
 
-/* GET: message properties are placed in mh2 */
+/* GET : les proprietes du message sont placees dans mh2 */
 msg2.0 = 8192
 
 igmd2.VER  = MQMD_VERSION_2
@@ -221,44 +257,35 @@ igmo2.MH    = mh2
 rcc = RXMQGET(h1,'msg2.','igmd2.','ogmd2.','igmo2.','ogmo2.')
 say "GET  =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 
-say "Received body =" msg2.1
+say "Corps recu =" msg2.1
 say ""
 
 /* --------------------------------------------------------------- */
-/* Read and verify the six properties individually */
+/* Lecture et verification individuelle des huit proprietes       */
 /* --------------------------------------------------------------- */
-impo1.OPT    = MQIMPO_NONE
-impo1.RQENC  = MQENC_NATIVE
+impo1.OPT    = MQIMPO_NONE + MQIMPO_CONVERT_VALUE
+impo1.RQENC  = MQENC_INTEGER_NORMAL + MQENC_DECIMAL_NORMAL +,
+                MQENC_FLOAT_IEEE_NORMAL
 impo1.RQCCSI = MQCCSI_APPL
 
-call verifprop 'usr.color',MQTYPE_STRING,'red'
+call verifprop 'usr.couleur',MQTYPE_STRING,'rouge'
 call verifprop 'usr.quantite',MQTYPE_INT32,'25'
 call verifprop 'usr.grandnombre',MQTYPE_INT64,'5000000000'
+call verifprop 'usr.nbint8',MQTYPE_INT8,'127'
+call verifprop 'usr.nbint16',MQTYPE_INT16,'300'
 call verifprop 'usr.prioritaire',MQTYPE_BOOLEAN,'1'
 call verifprop 'usr.montant',MQTYPE_FLOAT64,'123.45'
 call verifprop 'usr.temperature',MQTYPE_FLOAT32,'12.5'
 
-if rcode = 0 then do
-   say ""
-   say "=============================================="
-   say "TEST PASSED: all six types were preserved"
-   say "=============================================="
-end
-else do
-   say ""
-   say "=============================================="
-   say "TEST FAILED: at least one property is incorrect"
-   say "=============================================="
-end
-
 signal cleanup
 
 /* --------------------------------------------------------------- */
-/* Inquire a property and verify its type and value */
+/* Lecture d'une propriete et verification de son type/sa valeur   */
 /* --------------------------------------------------------------- */
 verifprop:
    parse arg nomatt,typeatt,valatt
@@ -273,26 +300,31 @@ rcc = RXMQIMP('mh2','impo1.',nomatt,'pdout.','ptype','pvalue.','pnameout')
    say "IMP" nomatt "=" rcc
 
    if word(rcc,1) <> 0 then do
-      say "FAILED: property inquiry failed"
+      call showerr rcc
+      say "KO : lecture impossible"
       rcode = 8
       return
    end
 
-   say "  name      =" pnameout
-   say "  type     =" ptype "(expected" typeatt")"
+   say "  nom      =" pnameout
+   say "  type     =" ptype "(attendu" typeatt")"
    say "  longueur =" pvalue.0
-   say "  value     =" pvalue.1 "(expected" valatt")"
+   say "  valeur   =" pvalue.1 "(attendue" valatt")"
 
-   if ptype <> typeatt then do
-      say "  FAILED: unexpected type"
+   if ptype /= typeatt then do
+      say "  KO : type inattendu"
+      if firstFailure = '' then
+         firstFailure = 'Type inattendu :' nomatt
       rcode = 8
    end
-   else if pvalue.1 <> valatt then do
-if typeatt = MQTYPE_FLOAT32 ! typeatt = MQTYPE_FLOAT64 then do
+   else if pvalue.1 /= valatt then do
+if typeatt = MQTYPE_FLOAT32 | typeatt = MQTYPE_FLOAT64 then do
    if pvalue.1 = valatt + 0 then
-      say "  OK: numerically equivalent value"
+      say "  OK : valeur numerique equivalente"
    else do
-      say "  FAILED: unexpected value"
+      say "  KO : valeur inattendue"
+      if firstFailure = '' then
+         firstFailure = 'Valeur inattendue :' nomatt
       rcode = 8
    end
 end
@@ -300,7 +332,9 @@ else do
    if pvalue.1 = valatt then
       say "  OK"
    else do
-      say "  FAILED: unexpected value"
+      say "  KO : valeur inattendue"
+      if firstFailure = '' then
+         firstFailure = 'Valeur inattendue :' nomatt
       rcode = 8
    end
 end
@@ -312,33 +346,61 @@ end
 return
 
 /* --------------------------------------------------------------- */
-/* Single cleanup path, including error cases */
+/* Nettoyage unique, y compris en cas d'erreur                     */
 /* --------------------------------------------------------------- */
 cleanup:
    if mh2cree = 1 then do
       dmho2.OPT = MQDMHO_NONE
       rcc2 = RXMQDMH('mh2','dmho2.')
       say "DMH mh2 =" rcc2
-      mh2cree = 0
+      if word(rcc2,1) <> 0 then do
+         call showerr rcc2
+         rcode = 8
+      end
+      else mh2cree = 0
    end
-
    if mh1cree = 1 then do
       dmho1.OPT = MQDMHO_NONE
       rcc2 = RXMQDMH('mh1','dmho1.')
       say "DMH mh1 =" rcc2
-      mh1cree = 0
+      if word(rcc2,1) <> 0 then do
+         call showerr rcc2
+         rcode = 8
+      end
+      else mh1cree = 0
    end
-
    if ouvert = 1 then do
       rcc2 = RXMQCLOS(h1,0)
       say "CLOSE =" rcc2
-      ouvert = 0
+      if word(rcc2,1) <> 0 then do
+         call showerr rcc2
+         rcode = 8
+      end
+      else ouvert = 0
    end
-
    if connecte = 1 then do
       rcc2 = RXMQDISC()
-      say "DISC  =" rcc2
-      connecte = 0
+      say "DISC =" rcc2
+      if word(rcc2,1) <> 0 then do
+         call showerr rcc2
+         rcode = 8
+      end
+      else connecte = 0
    end
-
+say "=============================================="
+if rcode = 0 then
+   say "TEST PASSED: HANDLE4"
+else do
+   say "TEST FAILED: HANDLE4"
+   say "FIRST FAILURE =" firstFailure
+end
+say "=============================================="
 exit rcode
+showerr:
+   parse arg errrcc
+   if firstFailure = '' then firstFailure = errrcc
+   say "LASTRC  =" RXMQ.LASTRC
+   say "LASTCC  =" RXMQ.LASTCC
+   say "LASTAC  =" RXMQ.LASTAC
+   say "LASTMSG =" RXMQ.LASTMSG
+return

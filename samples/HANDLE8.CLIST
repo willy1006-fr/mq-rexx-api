@@ -1,97 +1,106 @@
 /* REXX */
 /*
-  * HANDLE8 - Message handle / MQRFH2 buffer conversion
+ * HANDLE8 - Conversion Message Handle / buffer MQRFH2
  *
-  * CONN
-  * -> create MH1
-  * -> SETMP several properties in MH1
-  * -> MQMHBUF: MH1 to MQRFH2 buffer
-  * -> create MH2
-  * -> MQBUFMH: MQRFH2 buffer to MH2
-  * -> verify properties reconstructed in MH2
-  * -> cleanup
+ *   CONN
+ *   -> creation MH1
+ *   -> SETMP de plusieurs proprietes dans MH1
+ *   -> MQMHBUF : MH1 vers buffer MQRFH2
+ *   -> creation MH2
+ *   -> MQBUFMH : buffer MQRFH2 vers MH2
+ *   -> verification des proprietes reconstruites dans MH2
+ *   -> nettoyage
  */
 TRACE o
-qmgr = 'QM1'
+qmgr  = 'QM1'
 mh1cree  = 0
 mh2cree  = 0
 connecte = 0
 rcode    = 0
+firstFailure = ''
 say "QMGR =" qmgr
 say ""
 /* --------------------------------------------------------------- */
-/* 0. Initialization */
+/* 0. Initialisation                                              */
 /* --------------------------------------------------------------- */
   rcc = rxmqinit()
   if word(rcc,1) /= 0      then do
-   say time('l') 'initialization problem rc ==> ' rcc
-   interpret 'msgerr = rxmq.rcmap.'word(rcc,1)
-   say "                                           ==> "msgerr
-   exit 8
+   say time('l') 'probleme initialisation rc ==> ' rcc
+   call showerr rcc
+   rcode = 8
+   signal cleanup
    end
 /* --------------------------------------------------------------- */
-/* Connection */
+/* Connexion                                                       */
 /* --------------------------------------------------------------- */
 rcc = RXMQCONN(qmgr)
 say "CONN =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 connecte = 1
 /* --------------------------------------------------------------- */
-/* Create message handle MH1 */
+/* Creation du message handle MH1                                  */
 /* --------------------------------------------------------------- */
 cmho1.OPT = MQCMHO_VALIDATE
 rcc = RXMQMH('mh1','cmho1.')
 say "MH1 =" rcc mh1
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 mh1cree = 1
 /* --------------------------------------------------------------- */
-/* Define properties in MH1 */
+/* Definition des proprietes dans MH1                              */
 /* --------------------------------------------------------------- */
 smpo1.OPT        = MQSMPO_NONE
 pd1.OPT          = MQPD_NONE
 pd1.SUPPORT      = MQPD_SUPPORT_OPTIONAL
 pd1.CONTEXT      = MQPD_NO_CONTEXT
 pd1.COPYOPTIONS  = MQCOPY_DEFAULT
-rcc=RXMQSMP('mh1','smpo1.','usr.color','pd1.',MQTYPE_STRING,'blue')
-say "SMP usr.color     =" rcc
+rcc=RXMQSMP('mh1','smpo1.','usr.couleur','pd1.',MQTYPE_STRING,'bleu')
+say "SMP usr.couleur     =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 rcc=RXMQSMP('mh1','smpo1.','usr.quantite','pd1.',MQTYPE_INT32,25)
 say "SMP usr.quantite    =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 rcc=RXMQSMP('mh1','smpo1.','usr.prioritaire','pd1.',MQTYPE_BOOLEAN,1)
 say "SMP usr.prioritaire =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 rcc=RXMQSMP('mh1','smpo1.','usr.montant','pd1.',MQTYPE_FLOAT64,123.45)
 say "SMP usr.montant     =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 rcc=RXMQSMP('mh1','smpo1.','usr.client','pd1.',MQTYPE_STRING,'IBM')
 say "SMP usr.client      =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 /* --------------------------------------------------------------- */
-/* Convert message handle MH1 to an MQRFH2 buffer */
+/* Conversion du message handle MH1 vers un buffer MQRFH2          */
 /* --------------------------------------------------------------- */
-mhbo1.OPT = MQMHBO_NONE
+mhbo1.OPT = MQMHBO_PROPERTIES_IN_MQRFH2
+mhbo1.VER = MQMHBO_VERSION_1
 md1.VER  = MQMD_VERSION_2
 md1.REP  = MQRO_NONE
 md1.MSG  = MQMT_DATAGRAM
@@ -107,7 +116,7 @@ buf  = ''
 blen = 0
 say ""
 say "=============================================="
-say "MQMHBUF: MH1 TO MQRFH2 BUFFER"
+say "MQMHBUF : MH1 VERS BUFFER MQRFH2"
 say "=============================================="
 rcc = RXMQMBF('mh1','mhbo1.',pnam,'md1.','buf',8192,'blen')
 say "MBF =" rcc
@@ -118,79 +127,75 @@ say "buf length=" length(buf)
 say "blen      =" blen
 say "buf hex   =" c2x(substr(buf,1,64))
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 if blen = 0 then do
-   say "FAILED: no MQRFH2 buffer returned"
+   say "KO : aucun buffer MQRFH2 retourne"
+   if firstFailure = '' then
+      firstFailure = 'Aucun buffer MQRFH2 retourne'
    rcode = 8
    signal cleanup
 end
 /* --------------------------------------------------------------- */
-/* Create message handle MH2 */
+/* Creation du message handle MH2                                  */
 /* --------------------------------------------------------------- */
 cmho2.OPT = MQCMHO_VALIDATE
 rcc = RXMQMH('mh2','cmho2.')
 say ""
 say "MH2 =" rcc mh2
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 mh2cree = 1
 /* --------------------------------------------------------------- */
-/* Convert the MQRFH2 buffer to message handle MH2 */
+/* Conversion du buffer MQRFH2 vers le message handle MH2          */
 /* --------------------------------------------------------------- */
 bmho1.OPT = MQBMHO_NONE
+bmhbuf.0 = blen
+bmhbuf.1 = buf
 say ""
 say "=============================================="
-say "MQBUFMH: MQRFH2 BUFFER TO MH2"
+say "MQBUFMH : BUFFER MQRFH2 VERS MH2"
 say "=============================================="
-rcc = RXMQBMH('mh2','bmho1.','md1.',buf)
+rcc = RXMQBMH('mh2','bmho1.','md1.','bmhbuf.')
 say "BMH =" rcc
 if word(rcc,1) <> 0 then do
+   call showerr rcc
    rcode = 8
    signal cleanup
 end
 /* --------------------------------------------------------------- */
-/* MQINQMP options */
+/* Options MQINQMP                                                 */
 /* --------------------------------------------------------------- */
 impo1.OPT    = MQIMPO_NONE + MQIMPO_CONVERT_VALUE
-impo1.RQENC  = MQENC_NATIVE
+impo1.RQENC  = MQENC_INTEGER_NORMAL + MQENC_DECIMAL_NORMAL +,
+                MQENC_FLOAT_IEEE_NORMAL
 impo1.RQCCSI = MQCCSI_APPL
 handleinq = 'mh2'
 /* --------------------------------------------------------------- */
-/* Verify properties reconstructed in MH2 */
+/* Verification des proprietes reconstruites dans MH2              */
 /* --------------------------------------------------------------- */
 say ""
 say "=============================================="
-say "VERIFY PROPERTIES IN MH2"
+say "VERIFICATION DES PROPRIETES DANS MH2"
 say "=============================================="
 say ""
-call verifprop 'usr.color',MQTYPE_STRING,'blue'
+call verifprop 'usr.couleur',MQTYPE_STRING,'bleu'
 call verifprop 'usr.quantite',MQTYPE_INT32,'25'
 call verifprop 'usr.prioritaire',MQTYPE_BOOLEAN,'1'
 call verifprop 'usr.montant',MQTYPE_FLOAT64,'123.45'
 call verifprop 'usr.client',MQTYPE_STRING,'IBM'
 /* --------------------------------------------------------------- */
-/* Summary */
+/* Bilan                                                           */
 /* --------------------------------------------------------------- */
 say ""
-if rcode = 0 then do
-   say "=============================================="
-   say "TEST PASSED: MQMHBUF AND MQBUFMH"
-   say "THE MH1 PROPERTIES WERE RECONSTRUCTED"
-   say "IN MH2 FROM THE MQRFH2 BUFFER"
-   say "=============================================="
-end
-else do
-   say "=============================================="
-   say "TEST FAILED: MQMHBUF AND MQBUFMH"
-   say "=============================================="
-end
 signal cleanup
 /* --------------------------------------------------------------- */
-/* Verify one property */
+/* Verification d'une propriete                                    */
 /* --------------------------------------------------------------- */
 verifprop:
    parse arg nomatt,typeatt,valatt
@@ -199,50 +204,83 @@ verifprop:
    pnameout = ''
    ptype    = ''
    rcc=RXMQIMP(handleinq,'impo1.',nomatt,'pdout.','ptype','pvalue.','pnameout')
-   say "Verifying" nomatt
+   say "Verification de" nomatt
    say "  IMP              =" rcc
    if word(rcc,1) <> 0 then do
-      say "  FAILED: property is absent or inquiry failed"
+      call showerr rcc
+      say "  KO : propriete absente ou erreur"
       rcode = 8
       say "----------------------------------------------"
       return
    end
-   say "  Returned name     =" pnameout
-   say "  Returned type    =" ptype
-   say "  Expected type     =" typeatt
-   say "  Returned value =" pvalue.1
-   say "  Expected value  =" valatt
+   say "  Nom retourne     =" pnameout
+   say "  Type retourne    =" ptype
+   say "  Type attendu     =" typeatt
+   say "  Valeur retournee =" pvalue.1
+   say "  Valeur attendue  =" valatt
    if ptype <> typeatt then do
-      say "  FAILED: unexpected type"
+      say "  KO : type inattendu"
+      if firstFailure = '' then
+         firstFailure = 'Type inattendu :' nomatt
       rcode = 8
    end
    else if pvalue.1 <> valatt then do
-      say "  FAILED: unexpected value"
+      say "  KO : valeur inattendue"
+      if firstFailure = '' then
+         firstFailure = 'Valeur inattendue :' nomatt
       rcode = 8
    end
    else
-      say "  OK: property was reconstructed"
+      say "  OK : propriete reconstruite"
    say "----------------------------------------------"
 return
 /* --------------------------------------------------------------- */
-/* Single cleanup path */
+/* Nettoyage unique                                                */
 /* --------------------------------------------------------------- */
 cleanup:
    if mh2cree = 1 then do
       dmho2.OPT = MQDMHO_NONE
       rcc2 = RXMQDMH('mh2','dmho2.')
       say "DMH mh2 =" rcc2
-      mh2cree = 0
+      if word(rcc2,1) <> 0 then do
+         call showerr rcc2
+         rcode = 8
+      end
+      else mh2cree = 0
    end
    if mh1cree = 1 then do
       dmho1.OPT = MQDMHO_NONE
       rcc2 = RXMQDMH('mh1','dmho1.')
       say "DMH mh1 =" rcc2
-      mh1cree = 0
+      if word(rcc2,1) <> 0 then do
+         call showerr rcc2
+         rcode = 8
+      end
+      else mh1cree = 0
    end
    if connecte = 1 then do
       rcc2 = RXMQDISC()
       say "DISC =" rcc2
-      connecte = 0
+      if word(rcc2,1) <> 0 then do
+         call showerr rcc2
+         rcode = 8
+      end
+      else connecte = 0
    end
+say "=============================================="
+if rcode = 0 then
+   say "TEST PASSED: HANDLE8"
+else do
+   say "TEST FAILED: HANDLE8"
+   say "FIRST FAILURE =" firstFailure
+end
+say "=============================================="
 exit rcode
+showerr:
+   parse arg errrcc
+   if firstFailure = '' then firstFailure = errrcc
+   say "LASTRC  =" RXMQ.LASTRC
+   say "LASTCC  =" RXMQ.LASTCC
+   say "LASTAC  =" RXMQ.LASTAC
+   say "LASTMSG =" RXMQ.LASTMSG
+return

@@ -1,109 +1,108 @@
 /* REXX */
 /*
-  * HANDLE9 - Testing MQPD_USER_CONTEXT
+ * HANDLE9 - Test de MQPD_USER_CONTEXT
  *
-  * Objective: clearly distinguish two mechanisms:
+ * Objectif : distinguer clairement deux mecanismes :
  *
-  * 1. Message context:
-  * MQOO_SAVE_ALL_CONTEXT
-  * MQOO_PASS_ALL_CONTEXT
-  * MQPMO_PASS_ALL_CONTEXT
-  * MQPMO.Context = handle of the queue used for MQGET
+ *   1. Le contexte du message :
+ *        MQOO_SAVE_ALL_CONTEXT
+ *        MQOO_PASS_ALL_CONTEXT
+ *        MQPMO_PASS_ALL_CONTEXT
+ *        MQPMO.Context = handle de la file du MQGET
  *
-  * 2. Normal property copying:
-  * OriginalMsgHandle
-  * NewMsgHandle
-  * MQPMO.Action
-  * MQPD.CopyOptions
+ *   2. La copie normale des proprietes :
+ *        OriginalMsgHandle
+ *        NewMsgHandle
+ *        MQPMO.Action
+ *        MQPD.CopyOptions
  *
-  * This sample does NOT use OriginalMsgHandle, NewMsgHandle, or Action
-  * during the second PUT. It therefore isolates only the mechanism
-  * used to pass context.
+ * Ce sample n'utilise PAS OriginalMsgHandle, NewMsgHandle ni Action
+ * pendant le deuxieme PUT. Il isole donc uniquement le mecanisme
+ * de passage du contexte.
  *
-  * Two properties are placed in the initial message:
+ * Deux proprietes sont placees dans le message initial :
  *
-  * usr.normal
-  * Context = MQPD_NO_CONTEXT
+ *   usr.normal
+ *      Context = MQPD_NO_CONTEXT
  *
-  * usr.context
-  * Context = MQPD_USER_CONTEXT
+ *   usr.contexte
+ *      Context = MQPD_USER_CONTEXT
  *
-  * Both properties use MQCOPY_NONE so that no normal copy
-  * through Action/CopyOptions can occur.
+ * Les deux proprietes utilisent MQCOPY_NONE afin qu'aucune copie
+ * normale par Action/CopyOptions ne puisse intervenir.
  *
-  * Cases tested:
+ * Cas testes :
  *
-  * 1 - GET without SAVE_ALL_CONTEXT
-  * PUT without PASS_ALL_CONTEXT
+ *   1 - GET sans SAVE_ALL_CONTEXT
+ *       PUT sans PASS_ALL_CONTEXT
  *
-  * 2 - GET with SAVE_ALL_CONTEXT
-  * PUT without PASS_ALL_CONTEXT
+ *   2 - GET avec SAVE_ALL_CONTEXT
+ *       PUT sans PASS_ALL_CONTEXT
  *
-  * 3 - GET with SAVE_ALL_CONTEXT
-  * PUT with PASS_IDENTITY_CONTEXT
+ *   3 - GET avec SAVE_ALL_CONTEXT
+ *       PUT avec PASS_IDENTITY_CONTEXT
  *
-  * 4 - GET with SAVE_ALL_CONTEXT
-  * PUT with PASS_ALL_CONTEXT
+ *   4 - GET avec SAVE_ALL_CONTEXT
+ *       PUT avec PASS_ALL_CONTEXT
  *
-  * MA95 stems used:
-  * MQPMO : .VER .OPT .TIME .CON .OMH .NMH .ACT .PL
-  * MQGMO : .VER .OPT .WAIT .MOPT .MH
-  * MQPD  : .VER .OPT .SUPPORT .CONTEXT .COPYOPTIONS
+ * Stems MA95 utilises :
+ *   MQPMO : .VER .OPT .TIME .CON .OMH .NMH .ACT .PL
+ *   MQGMO : .VER .OPT .WAIT .MOPT .MH
+ *   MQPD  : .VER .OPT .SUPPORT .CONTEXT .COPYOPTIONS
  *
-  * Main expected result:
+ * Resultat principal attendu :
  *
-  * usr.normal   : absent from every copied message
-  * usr.context : present only in case 4
+ *   usr.normal   : absente dans tous les messages recopies
+ *   usr.contexte : presente uniquement dans le cas 4
  */
 TRACE o
 qmgr  = 'QM1'
 qname = 'DEV.QUEUE.1'
 connecte = 0
 rcode    = 0
+firstFailure = ''
 say "QMGR =" qmgr
 say "QUEUE=" qname
 say ""
 /* --------------------------------------------------------------- */
-/* Initialization */
+/* Initialisation                                                  */
 /* --------------------------------------------------------------- */
 rcc = rxmqinit()
 if word(rcc,1) /= 0 then do
-   say time('l') 'initialization problem rc ==> ' rcc
-   interpret 'msgerr = rxmq.rcmap.'word(rcc,1)
-   say "                                           ==> "msgerr
-   exit 8
+   say time('l') 'probleme initialisation rc ==> ' rcc
+   call showerr rcc
+   rcode = 8
+   signal cleanup
 end
 /* --------------------------------------------------------------- */
-/* Connection */
+/* Connexion                                                       */
 /* --------------------------------------------------------------- */
 rcc = RXMQCONN(qmgr)
 say "CONN =" rcc
-if word(rcc,1) <> 0 then exit 8
+if word(rcc,1) <> 0 then do
+   call showerr rcc
+   rcode = 8
+   signal cleanup
+end
 connecte = 1
 /* --------------------------------------------------------------- */
-/* Run the four cases */
+/* Execution des quatre cas                                       */
 /* --------------------------------------------------------------- */
 call testcas 1,0,0,'NONE'
+if rcode <> 0 then signal cleanup
 call testcas 2,1,0,'NONE'
+if rcode <> 0 then signal cleanup
 call testcas 3,1,1,'IDENTITY'
+if rcode <> 0 then signal cleanup
 call testcas 4,1,1,'ALL'
+if rcode <> 0 then signal cleanup
 /* --------------------------------------------------------------- */
-/* Summary */
+/* Bilan                                                           */
 /* --------------------------------------------------------------- */
 say ""
-if rcode = 0 then do
-   say "============================================================"
-   say "TEST PASSED: MQPD_USER_CONTEXT"
-   say "============================================================"
-end
-else do
-   say "============================================================"
-   say "TEST FAILED: MQPD_USER_CONTEXT"
-   say "============================================================"
-end
 signal cleanup
 /* --------------------------------------------------------------- */
-/* Run one case */
+/* Execution d'un cas                                              */
 /* --------------------------------------------------------------- */
 testcas:
    parse arg numcas,savecontext,passcontext,modepass
@@ -115,32 +114,34 @@ testcas:
    casok    = 1
    say ""
    say "============================================================"
-   say "CASE" numcas
+   say "CAS" numcas
    say "SAVE_ALL_CONTEXT =" savecontext
    say "PASS CONTEXT     =" modepass
    say "============================================================"
    /* ------------------------------------------------------------ */
-   /* Open the input queue */
+   /* Ouverture de la file d'entree                               */
    /* ------------------------------------------------------------ */
    iod1.OT = MQOT_Q
    iod1.ON = qname
-   iod1.OM = ''
+   iod1.OQM = ''
    oo1 = MQOO_INPUT_SHARED + MQOO_FAIL_IF_QUIESCING
    if savecontext = 1 then
       oo1 = oo1 + MQOO_SAVE_ALL_CONTEXT
    rcc = RXMQOPEN('iod1.',oo1,'h1','ood1.')
-   say "OPEN input =" rcc " h1=" h1
+   say "OPEN entree =" rcc " h1=" h1
    if word(rcc,1) <> 0 then do
+      call showerr rcc
       casok = 0
+      rcode = 8
       signal nettoiecas
    end
    h1ouvert = 1
    /* ------------------------------------------------------------ */
-   /* Open the output queue */
+   /* Ouverture de la file de sortie                              */
    /* ------------------------------------------------------------ */
    iod2.OT = MQOT_Q
    iod2.ON = qname
-   iod2.OM = ''
+   iod2.OQM = ''
    oo2 = MQOO_OUTPUT + MQOO_FAIL_IF_QUIESCING
    if passcontext = 1 then do
       if modepass = 'IDENTITY' then
@@ -149,25 +150,29 @@ testcas:
          oo2 = oo2 + MQOO_PASS_ALL_CONTEXT
    end
    rcc = RXMQOPEN('iod2.',oo2,'h2','ood2.')
-   say "OPEN output =" rcc " h2=" h2
+   say "OPEN sortie =" rcc " h2=" h2
    if word(rcc,1) <> 0 then do
+      call showerr rcc
       casok = 0
+      rcode = 8
       signal nettoiecas
    end
    h2ouvert = 1
    /* ------------------------------------------------------------ */
-   /* Create MH1 for the initial message */
+   /* Creation de MH1 pour le message initial                     */
    /* ------------------------------------------------------------ */
    cmho1.OPT = MQCMHO_VALIDATE
    rcc = RXMQMH('mh1','cmho1.')
    say "MH1 =" rcc mh1
    if word(rcc,1) <> 0 then do
+      call showerr rcc
       casok = 0
+      rcode = 8
       signal nettoiecas
    end
    mh1cree = 1
    /* ------------------------------------------------------------ */
-   /* Normal property */
+   /* Propriete normale                                            */
    /* ------------------------------------------------------------ */
    drop smpo1. pdnormal.
    smpo1.OPT             = MQSMPO_NONE
@@ -179,11 +184,13 @@ testcas:
    rcc=RXMQSMP('mh1','smpo1.','usr.normal','pdnormal.',MQTYPE_STRING,'normale')
    say "SMP usr.normal   NO_CONTEXT   =" rcc
    if word(rcc,1) <> 0 then do
+      call showerr rcc
       casok = 0
+      rcode = 8
       signal nettoiecas
    end
    /* ------------------------------------------------------------ */
-   /* Property belonging to user context */
+   /* Propriete appartenant au user context                        */
    /* ------------------------------------------------------------ */
    drop pdconte.
    pdconte.VER            = MQPD_VERSION_1
@@ -191,16 +198,18 @@ testcas:
    pdconte.SUPPORT        = MQPD_SUPPORT_OPTIONAL
    pdconte.CONTEXT        = MQPD_USER_CONTEXT
    pdconte.COPYOPTIONS = MQCOPY_NONE
- rcc=RXMQSMP('mh1','smpo1.','usr.context','pdconte.',MQTYPE_STRING,'contexte')
-   say "SMP usr.context USER_CONTEXT =" rcc
+ rcc=RXMQSMP('mh1','smpo1.','usr.contexte','pdconte.',MQTYPE_STRING,'contexte')
+   say "SMP usr.contexte USER_CONTEXT =" rcc
    if word(rcc,1) <> 0 then do
+      call showerr rcc
       casok = 0
+      rcode = 8
       signal nettoiecas
    end
    /* ------------------------------------------------------------ */
-   /* First PUT: create the initial message */
+   /* Premier PUT : creation du message initial                    */
    /* ------------------------------------------------------------ */
-   d.1 = 'Initial message for MQPD_USER_CONTEXT case 'numcas
+   d.1 = 'Message initial pour MQPD_USER_CONTEXT cas 'numcas
    d.0 = length(d.1)
    imd2.VER  = MQMD_VERSION_2
    imd2.REP  = MQRO_NONE
@@ -224,25 +233,31 @@ testcas:
    rcc = RXMQPUT(h2,'d.','imd2.','omd2.','ipmo2.','opmo2.')
    say "PUT initial =" rcc
    if word(rcc,1) <> 0 then do
+      call showerr rcc
       casok = 0
+      rcode = 8
       signal nettoiecas
    end
    dmho1.OPT = MQDMHO_NONE
    rcc = RXMQDMH('mh1','dmho1.')
    say "DMH mh1 =" rcc
    if word(rcc,1) <> 0 then do
+      call showerr rcc
       casok = 0
+      rcode = 8
       signal nettoiecas
    end
    mh1cree = 0
    /* ------------------------------------------------------------ */
-   /* GET the initial message */
+   /* GET du message initial                                      */
    /* ------------------------------------------------------------ */
    cmho2.OPT = MQCMHO_VALIDATE
    rcc = RXMQMH('mh2','cmho2.')
    say "MH2 =" rcc mh2
    if word(rcc,1) <> 0 then do
+      call showerr rcc
       casok = 0
+      rcode = 8
       signal nettoiecas
    end
    mh2cree = 1
@@ -259,26 +274,28 @@ testcas:
    rcc = RXMQGET(h1,'msg2.','igmd2.','ogmd2.','igmo2.','ogmo2.')
    say "GET initial =" rcc
    if word(rcc,1) <> 0 then do
+      call showerr rcc
       casok = 0
+      rcode = 8
       signal nettoiecas
    end
-   say "Initial body =" msg2.1
+   say "Corps initial =" msg2.1
    /* ------------------------------------------------------------ */
-   /* Verify properties in MH2 */
+   /* Verification des proprietes dans MH2                         */
    /* ------------------------------------------------------------ */
    impo1.OPT    = MQIMPO_NONE
    impo1.RQENC  = MQENC_NATIVE
    impo1.RQCCSI = MQCCSI_APPL
    handleinq = 'mh2'
    say ""
-   say "Properties after the initial GET"
+   say "Proprietes apres le GET initial"
    call verifpresente 'usr.normal',MQTYPE_STRING,'normale',MQPD_NO_CONTEXT
-   call verifpresente 'usr.context',MQTYPE_STRING,'contexte',MQPD_USER_CONTEXT
+   call verifpresente 'usr.contexte',MQTYPE_STRING,'contexte',MQPD_USER_CONTEXT
    if casok = 0 then signal nettoiecas
    /* ------------------------------------------------------------ */
-   /* Second PUT: no message handle is supplied */
+   /* Deuxieme PUT : aucun Message Handle n'est fourni             */
    /* ------------------------------------------------------------ */
-   msg3.1 = 'Message created from the context of case 'numcas
+   msg3.1 = 'Message cree a partir du contexte du cas 'numcas
    msg3.0 = length(msg3.1)
    imd3.VER  = MQMD_VERSION_2
    imd3.REP  = MQRO_NONE
@@ -310,38 +327,44 @@ ipmo3.OPT=MQPMO_NO_SYNCPOINT+MQPMO_FAIL_IF_QUIESCING+MQPMO_PASS_IDENTITY_CONTEXT
  ipmo3.OPT =MQPMO_NO_SYNCPOINT+MQPMO_FAIL_IF_QUIESCING+MQPMO_DEFAULT_CONTEXT
  end
    say ""
-   say "Second PUT"
+   say "Deuxieme PUT"
    say "  PMO.Options =" ipmo3.OPT
    if symbol("ipmo3.CON") = "VAR" then,
       say "  PMO.Context =" ipmo3.CON
    else,
-      say "  PMO.Context = not set"
+      say "  PMO.Context = non renseigne"
    rcc = RXMQPUT(h2,'msg3.','imd3.','omd3.','ipmo3.','opmo3.')
-   say "Context PUT =" rcc
+   say "PUT contexte =" rcc
    if word(rcc,1) <> 0 then do
-      say "The PUT failed. Check context authorities."
+      call showerr rcc
+      say "Le PUT a echoue. Verifier les autorisations de contexte."
       casok = 0
+      rcode = 8
       signal nettoiecas
    end
    /* ------------------------------------------------------------ */
-   /* The context saved in h1 is no longer required */
+   /* Le contexte sauvegarde dans h1 n'est plus necessaire         */
    /* ------------------------------------------------------------ */
    dmho2.OPT = MQDMHO_NONE
    rcc = RXMQDMH('mh2','dmho2.')
    say "DMH mh2 =" rcc
    if word(rcc,1) <> 0 then do
+      call showerr rcc
       casok = 0
+      rcode = 8
       signal nettoiecas
    end
    mh2cree = 0
    /* ------------------------------------------------------------ */
-   /* GET the message created by the second PUT */
+   /* GET du message cree par le deuxieme PUT                      */
    /* ------------------------------------------------------------ */
    cmho3.OPT = MQCMHO_VALIDATE
    rcc = RXMQMH('mh3','cmho3.')
    say "MH3 =" rcc mh3
    if word(rcc,1) <> 0 then do
+      call showerr rcc
       casok = 0
+      rcode = 8
       signal nettoiecas
    end
    mh3cree = 1
@@ -356,31 +379,33 @@ ipmo3.OPT=MQPMO_NO_SYNCPOINT+MQPMO_FAIL_IF_QUIESCING+MQPMO_PASS_IDENTITY_CONTEXT
    igmo4.MOPT = MQMO_NONE
    igmo4.MH    = mh3
    rcc = RXMQGET(h1,'msg4.','igmd4.','ogmd4.','igmo4.','ogmo4.')
-   say "Context GET =" rcc
+   say "GET contexte =" rcc
    if word(rcc,1) <> 0 then do
+      call showerr rcc
       casok = 0
+      rcode = 8
       signal nettoiecas
    end
-   say "Context message body =" msg4.1
+   say "Corps contexte =" msg4.1
    /* ------------------------------------------------------------ */
-   /* Final verification */
+   /* Verification finale                                          */
    /* ------------------------------------------------------------ */
    handleinq = 'mh3'
    say ""
-   say "Final verification"
-   say "usr.normal must always be absent"
+   say "Verification finale"
+   say "usr.normal doit toujours etre absente"
    call verifabsente 'usr.normal'
    if modepass = 'ALL' then do
-      say "usr.context must be present"
- call verifpresente 'usr.context',MQTYPE_STRING,'contexte',MQPD_USER_CONTEXT
+      say "usr.contexte doit etre presente"
+ call verifpresente 'usr.contexte',MQTYPE_STRING,'contexte',MQPD_USER_CONTEXT
    end
    else do
-      say "usr.context must be absent"
-      call verifabsente 'usr.context'
+      say "usr.contexte doit etre absente"
+      call verifabsente 'usr.contexte'
    end
    signal nettoiecas
 /* --------------------------------------------------------------- */
-/* Verify a present property */
+/* Verification d'une propriete presente                           */
 /* --------------------------------------------------------------- */
 verifpresente:
    parse arg nomatt,typeatt,valatt,contextatt
@@ -391,34 +416,45 @@ verifpresente:
    rcc=RXMQIMP(handleinq,'impo1.',nomatt,'pdout.','ptype','pvalue.','pnameout')
    say "IMP" nomatt "=" rcc
    if word(rcc,1) <> 0 then do
-      say "  FAILED: expected property is present"
+      call showerr rcc
+      say "  KO : propriete attendue presente"
       casok = 0
+      rcode = 8
       say "----------------------------------------------"
       return
    end
-   say "  name         =" pnameout
-   say "  type         =" ptype "(expected" typeatt")"
-   say "  value       =" pvalue.1 "(expected" valatt")"
-   say "  PD.Context   =" pdout.CONTEXT "(expected" contextatt")"
+   say "  nom          =" pnameout
+   say "  type         =" ptype "(attendu" typeatt")"
+   say "  valeur       =" pvalue.1 "(attendue" valatt")"
+   say "  PD.Context   =" pdout.CONTEXT "(attendu" contextatt")"
    say "  CopyOptions  =" pdout.COPYOPTIONS
    if ptype <> typeatt then do
-      say "  FAILED: unexpected type"
+      say "  KO : type inattendu"
+      if firstFailure = '' then
+         firstFailure = 'Type inattendu :' nomatt
       casok = 0
+      rcode = 8
    end
    else if pvalue.1 <> valatt then do
-      say "  FAILED: unexpected value"
+      say "  KO : valeur inattendue"
+      if firstFailure = '' then
+         firstFailure = 'Valeur inattendue :' nomatt
       casok = 0
+      rcode = 8
    end
    else if pdout.CONTEXT <> contextatt then do
-      say "  FAILED: unexpected context"
+      say "  KO : contexte inattendu"
+      if firstFailure = '' then
+         firstFailure = 'Contexte inattendu :' nomatt
       casok = 0
+      rcode = 8
    end
    else
       say "  OK"
    say "----------------------------------------------"
 return
 /* --------------------------------------------------------------- */
-/* Verify an absent property */
+/* Verification d'une propriete absente                            */
 /* --------------------------------------------------------------- */
 verifabsente:
    parse arg nomatt
@@ -428,71 +464,122 @@ verifabsente:
    ptype    = ''
    rcc=RXMQIMP(handleinq,'impo1.',nomatt,'pdout.','ptype','pvalue.','pnameout')
    say "IMP" nomatt "=" rcc
-   if word(rcc,3) = MQRC_PROPERTY_NOT_AVAILABLE then do
-      say "  OK: property is absent"
+   if word(rcc,1) = MQCC_FAILED &,
+      RXMQ.LASTCC = MQCC_FAILED &,
+      RXMQ.LASTAC = MQRC_PROPERTY_NOT_AVAILABLE then do
+      say "  OK : propriete absente"
    end
    else do
+      if word(rcc,1) <> 0 then call showerr rcc
+      if firstFailure = '' then
+         firstFailure = 'Propriete attendue absente :' nomatt
       if word(rcc,1) = 0 then do
-         say "  FAILED: property is present"
+         say "  KO : propriete presente"
          say "  type         =" ptype
-         say "  value       =" pvalue.1
+         say "  valeur       =" pvalue.1
          say "  PD.Context   =" pdout.CONTEXT
          say "  CopyOptions  =" pdout.COPYOPTIONS
       end
       else do
-         say "  FAILED: unexpected error"
-         say "  return =" rcc
+         say "  KO : erreur inattendue"
+         say "  retour =" rcc
       end
       casok = 0
+      rcode = 8
    end
    say "----------------------------------------------"
 return
 /* --------------------------------------------------------------- */
-/* Case cleanup */
+/* Nettoyage du cas                                                */
 /* --------------------------------------------------------------- */
 nettoiecas:
    if mh3cree = 1 then do
       dmho3.OPT = MQDMHO_NONE
       rcc2 = RXMQDMH('mh3','dmho3.')
       say "DMH mh3 =" rcc2
-      mh3cree = 0
+      if word(rcc2,1) <> 0 then do
+         call showerr rcc2
+         rcode = 8
+         casok = 0
+      end
+      else mh3cree = 0
    end
    if mh2cree = 1 then do
       dmho2.OPT = MQDMHO_NONE
       rcc2 = RXMQDMH('mh2','dmho2.')
       say "DMH mh2 =" rcc2
-      mh2cree = 0
+      if word(rcc2,1) <> 0 then do
+         call showerr rcc2
+         rcode = 8
+         casok = 0
+      end
+      else mh2cree = 0
    end
    if mh1cree = 1 then do
       dmho1.OPT = MQDMHO_NONE
       rcc2 = RXMQDMH('mh1','dmho1.')
       say "DMH mh1 =" rcc2
-      mh1cree = 0
+      if word(rcc2,1) <> 0 then do
+         call showerr rcc2
+         rcode = 8
+         casok = 0
+      end
+      else mh1cree = 0
    end
    if h2ouvert = 1 then do
       rcc2 = RXMQCLOS(h2,0)
       say "CLOSE h2 =" rcc2
-      h2ouvert = 0
+      if word(rcc2,1) <> 0 then do
+         call showerr rcc2
+         rcode = 8
+         casok = 0
+      end
+      else h2ouvert = 0
    end
    if h1ouvert = 1 then do
       rcc2 = RXMQCLOS(h1,0)
       say "CLOSE h1 =" rcc2
-      h1ouvert = 0
+      if word(rcc2,1) <> 0 then do
+         call showerr rcc2
+         rcode = 8
+         casok = 0
+      end
+      else h1ouvert = 0
    end
    if casok = 1 then
-      say "CASE" numcas "OK"
+      say "CAS" numcas "OK"
    else do
-      say "CASE" numcas "KO"
+      say "CAS" numcas "KO"
       rcode = 8
    end
 return
 /* --------------------------------------------------------------- */
-/* General cleanup */
+/* Nettoyage general                                               */
 /* --------------------------------------------------------------- */
 cleanup:
    if connecte = 1 then do
       rcc2 = RXMQDISC()
       say "DISC =" rcc2
-      connecte = 0
+      if word(rcc2,1) <> 0 then do
+         call showerr rcc2
+         rcode = 8
+      end
+      else connecte = 0
    end
+say "=============================================="
+if rcode = 0 then
+   say "TEST PASSED: HANDLE9"
+else do
+   say "TEST FAILED: HANDLE9"
+   say "FIRST FAILURE =" firstFailure
+end
+say "=============================================="
 exit rcode
+showerr:
+   parse arg errrcc
+   if firstFailure = '' then firstFailure = errrcc
+   say "LASTRC  =" RXMQ.LASTRC
+   say "LASTCC  =" RXMQ.LASTCC
+   say "LASTAC  =" RXMQ.LASTAC
+   say "LASTMSG =" RXMQ.LASTMSG
+return
